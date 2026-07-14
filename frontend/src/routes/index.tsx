@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Activity,
@@ -17,6 +18,8 @@ import {
   Microscope,
   Mail,
   ArrowRight,
+  ArrowDown,
+  UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-signals.jpg";
@@ -50,6 +53,7 @@ function Landing() {
         <About />
         <Features />
         <HowItWorks />
+        <ArchitectureSection />
         <Benefits />
         <Contact />
       </main>
@@ -80,10 +84,21 @@ function Header() {
           <a href="#acerca" className="transition hover:text-foreground">Acerca</a>
           <a href="#caracteristicas" className="transition hover:text-foreground">Características</a>
           <a href="#como-funciona" className="transition hover:text-foreground">Cómo funciona</a>
+          <a href="#arquitectura" className="transition hover:text-foreground">Arquitectura</a>
           <a href="#beneficios" className="transition hover:text-foreground">Beneficios</a>
           <a href="#contacto" className="transition hover:text-foreground">Contacto</a>
         </nav>
         <div className="flex items-center gap-2">
+          <a href="/laboratorio" className="hidden sm:inline-flex">
+            <Button variant="ghost" size="sm">
+              Laboratorio
+            </Button>
+          </a>
+          <a href="/chat" className="hidden sm:inline-flex">
+            <Button variant="ghost" size="sm">
+              Asistente
+            </Button>
+          </a>
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
             Iniciar sesión
           </Button>
@@ -125,13 +140,15 @@ function Hero() {
             diseñadas para estudiantes de bioingeniería y áreas afines.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button
-              size="lg"
-              className="bg-gradient-brand text-primary-foreground shadow-glow hover:opacity-95"
-            >
-              Comenzar
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Button>
+            <a href="/laboratorio">
+              <Button
+                size="lg"
+                className="bg-gradient-brand text-primary-foreground shadow-glow hover:opacity-95"
+              >
+                Abrir laboratorio
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            </a>
             <Button
               size="lg"
               variant="outline"
@@ -363,6 +380,130 @@ function HowItWorks() {
               <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ArchitectureSection() {
+  const [activeBlock, setActiveBlock] = useState(0);
+
+  const blocks = [
+    {
+      name: "Usuario",
+      description: "Estudiante o docente interactúa con la plataforma para cargar señales y explorar resultados.",
+      technology: "Experiencia web guiada",
+      icon: UserRound,
+    },
+    {
+      name: "Frontend React",
+      description: "La interfaz reúne laboratorios, visualizaciones interactivas y componentes pedagógicos para el usuario.",
+      technology: "React + TypeScript",
+      icon: Activity,
+    },
+    {
+      name: "Backend FastAPI",
+      description: "Orquesta la lógica de negocio, expone servicios y prepara los datos para el análisis.",
+      technology: "FastAPI",
+      icon: Cpu,
+    },
+    {
+      name: "Procesamiento de Bioseñales",
+      description: "Aplica filtrado, extracción de características y procesamiento digital de señales fisiológicas.",
+      technology: "NumPy, SciPy, NeuroKit2, MNE",
+      icon: Filter,
+    },
+    {
+      name: "Módulo Inteligente",
+      description: "Clasifica patrones, estima estados y genera explicaciones automáticas con aprendizaje automático.",
+      technology: "Scikit-Learn y TensorFlow",
+      icon: Bot,
+    },
+    {
+      name: "Visualización de Resultados",
+      description: "Transforma los resultados en gráficos interactivos y métricas comprensibles para el usuario.",
+      technology: "Plotly",
+      icon: LineChart,
+    },
+    {
+      name: "Retroalimentación Educativa",
+      description: "Integra explicaciones, guías y contexto pedagógico para reforzar el aprendizaje.",
+      technology: "Retroalimentación guiada y asistente",
+      icon: GraduationCap,
+    },
+  ];
+
+  const ActiveIcon = blocks[activeBlock].icon;
+
+  return (
+    <section id="arquitectura" className="bg-gradient-soft py-24">
+      <div className="mx-auto max-w-7xl px-6">
+        <SectionHeader
+          eyebrow="Arquitectura de EduSignal"
+          title="Flujo completo de la plataforma"
+          desc="Una arquitectura modular que conecta la experiencia de usuario, el procesamiento de bioseñales y la inteligencia artificial en un entorno educativo coherente."
+        />
+
+        <div className="mt-14 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-[2rem] border border-border bg-card p-6 shadow-card">
+            <div className="flex flex-col gap-4">
+              {blocks.map((block, index) => {
+                const Icon = block.icon;
+                const isActive = activeBlock === index;
+                return (
+                  <div key={block.name} className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setActiveBlock(index)}
+                      className={`flex-1 rounded-2xl border px-4 py-4 text-left transition ${
+                        isActive
+                          ? "border-primary/40 bg-primary/8 shadow-sm"
+                          : "border-border/70 bg-background/70 hover:border-primary/20"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`grid h-10 w-10 place-items-center rounded-xl ${isActive ? "bg-gradient-brand text-primary-foreground" : "bg-accent text-primary"}`}>
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-display text-base font-semibold">{block.name}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{block.technology}</p>
+                        </div>
+                      </div>
+                    </button>
+                    {index < blocks.length - 1 ? <ArrowDown className="h-4 w-4 text-muted-foreground" /> : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-border bg-background/80 p-6 shadow-card">
+            <div className="flex items-center gap-3">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-brand text-primary-foreground shadow-glow">
+                <ActiveIcon className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Bloque activo</p>
+                <h3 className="font-display text-xl font-semibold">{blocks[activeBlock].name}</h3>
+              </div>
+            </div>
+
+            <p className="mt-6 text-base leading-7 text-muted-foreground">{blocks[activeBlock].description}</p>
+
+            <div className="mt-6 rounded-2xl border border-border/70 bg-card/80 p-4">
+              <p className="text-sm font-semibold text-foreground">Tecnología utilizada</p>
+              <p className="mt-2 text-sm text-muted-foreground">{blocks[activeBlock].technology}</p>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/8 to-transparent p-4">
+              <p className="text-sm font-semibold text-foreground">Flujo general</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Usuario → Frontend → Backend → Procesamiento → Inteligencia Artificial → Visualización → Retroalimentación.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
