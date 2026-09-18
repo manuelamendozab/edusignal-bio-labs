@@ -4,7 +4,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "80:5173"
+      - "5173:5173"
     volumes:
       - ./frontend:/usr/src/app:cached
       - frontend_node_modules:/usr/src/app/node_modules

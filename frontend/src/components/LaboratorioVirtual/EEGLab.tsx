@@ -9,9 +9,11 @@ import { MetricsPanel } from "@/components/MetricsPanel/MetricsPanel";
 import { ProcessingPanel } from "@/components/ProcessingPanel/ProcessingPanel";
 import { SignalUploader } from "@/components/SignalUploader/SignalUploader";
 import { SignalViewer } from "@/components/SignalViewer/SignalViewer";
+import { ClinicalDisclaimer } from "@/components/ClinicalDisclaimer/ClinicalDisclaimer";
 import { AutomaticInterpretationCard } from "@/components/LaboratorioVirtual/AutomaticInterpretationCard";
 import { AnalysisResultsPanel } from "@/components/LaboratorioVirtual/AnalysisResultsPanel";
 import {
+  FILTERS_BY_MODALITY,
   applySignalFilter,
   computeSpectralAnalysis,
   getSignalChannel,
@@ -21,52 +23,22 @@ import {
 
 const Plot = lazy(() => import("react-plotly.js"));
 
-function movingAverage(values: number[], window: number): number[] {
-  const radius = Math.max(1, Math.floor(window / 2));
-  const output = new Array(values.length).fill(0);
-  values.forEach((_, index) => {
-    const start = Math.max(0, index - radius);
-    const end = Math.min(values.length, index + radius + 1);
-    const slice = values.slice(start, end);
-    output[index] = slice.reduce((sum, value) => sum + value, 0) / slice.length;
-  });
-  return output;
-}
-
-function computeBandPowers(signal: SignalData) {
-  const values = signal.values;
-  if (!values.length) {
-    return {
-      delta: 0,
-      theta: 0,
-      alpha: 0,
-      beta: 0,
-      gamma: 0,
-    };
-  }
-
-  const delta = movingAverage(values, Math.max(8, Math.round(signal.samplingRate / 6)));
-  const theta = movingAverage(values, Math.max(6, Math.round(signal.samplingRate / 8)));
-  const alpha = movingAverage(values, Math.max(4, Math.round(signal.samplingRate / 12)));
-  const beta = movingAverage(values, Math.max(3, Math.round(signal.samplingRate / 18)));
-  const gamma = movingAverage(values, Math.max(2, Math.round(signal.samplingRate / 24)));
-
-  const power = (band: number[]) => band.reduce((sum, value) => sum + value * value, 0) / band.length;
-
-  return {
-    delta: power(delta),
-    theta: power(theta),
-    alpha: power(alpha),
-    beta: power(beta),
-    gamma: power(gamma),
-  };
+/**
+ * Potencia de banda absoluta, en las unidades del registro al cuadrado. El
+ * rango util abarca varios ordenes de magnitud segun la ganancia del equipo,
+ * asi que se recurre a notacion cientifica fuera de un intervalo legible.
+ */
+function formatBandPower(power: number, units = "µV"): string {
+  if (!(power > 0)) return `0 ${units}²`;
+  const formatted =
+    power >= 1000 || power < 0.01 ? power.toExponential(2) : power.toFixed(power >= 10 ? 1 : 3);
+  return `${formatted} ${units}²`;
 }
 
 export function EEGLab() {
   const [signal, setSignal] = useState<SignalData | null>(null);
   const [filteredSignal, setFilteredSignal] = useState<SignalData | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>("none");
-  const [bandPowers, setBandPowers] = useState({ delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0 });
   const [selectedChannelIndex, setSelectedChannelIndex] = useState(0);
 
   const activeSignal = useMemo(() => {
@@ -89,13 +61,10 @@ export function EEGLab() {
   useEffect(() => {
     if (!activeSignal) {
       setFilteredSignal(null);
-      setBandPowers({ delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0 });
       return;
     }
 
-    const nextFilteredSignal = applySignalFilter(activeSignal, activeFilter);
-    setFilteredSignal(nextFilteredSignal);
-    setBandPowers(computeBandPowers(nextFilteredSignal));
+    setFilteredSignal(applySignalFilter(activeSignal, activeFilter));
   }, [activeFilter, activeSignal]);
 
   useEffect(() => {
@@ -114,15 +83,48 @@ export function EEGLab() {
     return `Señal cargada: ${activeSignal.name} • ${activeSignal.samples} muestras • ${activeSignal.samplingRate} Hz`;
   }, [activeSignal]);
 
+  const spectralAnalysis = useMemo(() => computeSpectralAnalysis(filteredSignal ?? activeSignal), [activeSignal, filteredSignal]);
+
+  /**
+   * Potencia por banda integrada sobre el espectro de potencia
+   * (Delta 0.5-4, Theta 4-8, Alpha 8-13, Beta 13-30, Gamma 30-50 Hz).
+   */
+  const bandPowers = spectralAnalysis.bandPowers;
+
+  /**
+   * Potencia relativa: porcentaje que aporta cada banda al total 0.5-50 Hz.
+   * La potencia absoluta depende de la escala del registro, por lo que solo la
+   * distribucion relativa es comparable entre canales y entre sujetos.
+   */
+  const relativeBandPowers = useMemo(() => {
+    const entries = Object.entries(bandPowers) as Array<[string, number]>;
+    const total = entries.reduce((sum, [, power]) => sum + power, 0);
+
+    if (total <= 0) {
+      return { delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0 };
+    }
+
+    return {
+      delta: (bandPowers.delta / total) * 100,
+      theta: (bandPowers.theta / total) * 100,
+      alpha: (bandPowers.alpha / total) * 100,
+      beta: (bandPowers.beta / total) * 100,
+      gamma: (bandPowers.gamma / total) * 100,
+    };
+  }, [bandPowers]);
+
   const detectedBands = useMemo(() => {
     const entries = Object.entries(bandPowers) as Array<[string, number]>;
     const max = Math.max(...entries.map(([, power]) => power));
+
+    if (!(max > 0)) {
+      return [];
+    }
+
     return entries
       .filter(([, power]) => power >= max * 0.7)
       .map(([band]) => band.charAt(0).toUpperCase() + band.slice(1));
   }, [bandPowers]);
-
-  const spectralAnalysis = useMemo(() => computeSpectralAnalysis(filteredSignal ?? activeSignal), [activeSignal, filteredSignal]);
 
   const channelOptions = useMemo(() => {
     if (!signal?.channelNames?.length) {
@@ -141,18 +143,41 @@ export function EEGLab() {
     physiology: "Las bandas delta, theta, alpha, beta y gamma reflejan patrones de sincronización neuronal que cambian con el estado de alerta y la tarea realizada.",
   };
 
+  /**
+   * Cada banda se muestra con su potencia absoluta y su porcentaje del total
+   * 0.5-50 Hz. La absoluta depende de la ganancia del equipo y del canal; la
+   * relativa es la que permite comparar registros. Ambas se reportan porque
+   * solo la absoluta permite ver si la potencia sube o baja entre condiciones
+   * (por ejemplo, el aumento de alpha al cerrar los ojos), algo que un
+   * porcentaje, normalizado al total, puede ocultar.
+   */
+  const bandCards = (
+    [
+      ["Delta", "0.5-4 Hz", bandPowers.delta, relativeBandPowers.delta],
+      ["Theta", "4-8 Hz", bandPowers.theta, relativeBandPowers.theta],
+      ["Alpha", "8-13 Hz", bandPowers.alpha, relativeBandPowers.alpha],
+      ["Beta", "13-30 Hz", bandPowers.beta, relativeBandPowers.beta],
+      ["Gamma", "30-50 Hz", bandPowers.gamma, relativeBandPowers.gamma],
+    ] as Array<[string, string, number, number]>
+  ).map(([band, range, absolute, relative]) => ({
+    label: `${band} (${range})`,
+    value: `${formatBandPower(absolute, activeSignal?.units)} (${relative.toFixed(1)} %)`,
+    icon: BrainCircuit,
+  }));
+
   const metricsCards = [
     { label: "Frecuencia de muestreo", value: `${activeSignal?.samplingRate ?? 0} Hz`, icon: Activity },
     { label: "Duración del registro", value: `${recordingDuration.toFixed(2)} s`, icon: Clock3 },
-    { label: "Potencia Delta", value: bandPowers.delta.toFixed(3), icon: BrainCircuit },
-    { label: "Potencia Theta", value: bandPowers.theta.toFixed(3), icon: BrainCircuit },
-    { label: "Potencia Alpha", value: bandPowers.alpha.toFixed(3), icon: BrainCircuit },
-    { label: "Potencia Beta", value: bandPowers.beta.toFixed(3), icon: BrainCircuit },
-    { label: "Potencia Gamma", value: bandPowers.gamma.toFixed(3), icon: BrainCircuit },
+    {
+      label: "Frecuencia dominante",
+      value: `${spectralAnalysis.dominantFrequency.toFixed(2)} Hz`,
+      icon: Waves,
+    },
+    ...bandCards,
   ];
 
   const interpretation = useMemo(() => {
-    const entries = Object.entries(bandPowers) as Array<[string, number]>;
+    const entries = Object.entries(relativeBandPowers) as Array<[string, number]>;
     const dominantBand = entries.reduce((previous, current) => (current[1] > previous[1] ? current : previous), entries[0] ?? ["delta", 0]);
 
     if (!activeSignal) {
@@ -167,7 +192,7 @@ export function EEGLab() {
     const bandLabel = bandName.charAt(0).toUpperCase() + bandName.slice(1);
     const bandValue = dominantBand[1];
 
-    if (bandValue < 1e-6) {
+    if (!(bandValue > 0)) {
       return {
         highlight: "No se detecta una banda dominante clara.",
         description: "La energía se reparte de manera relativamente uniforme, lo que puede indicar un registro con poca estructura o artefactos.",
@@ -186,21 +211,36 @@ export function EEGLab() {
     return {
       highlight: `Banda predominante: ${bandLabel}.`,
       description: physiologyMap[bandName] ?? "La distribución espectral sugiere un patrón neurofisiológico específico que puede interpretarse junto con el contexto experimental.",
-      details: ["Potencia dominante: " + bandValue.toFixed(3), "Señal analizada: " + activeSignal.name, "Canal activo: " + (signal?.channelNames?.[selectedChannelIndex] ?? "Canal 1")],
+      details: [
+        `Potencia relativa: ${bandValue.toFixed(1)} % del total 0.5-50 Hz`,
+        `Frecuencia dominante: ${spectralAnalysis.dominantFrequency.toFixed(2)} Hz`,
+        "Señal analizada: " + activeSignal.name,
+        "Canal activo: " + (signal?.channelNames?.[selectedChannelIndex] ?? "Canal 1"),
+      ],
     };
-  }, [activeSignal, bandPowers, selectedChannelIndex, signal?.channelNames]);
+  }, [activeSignal, relativeBandPowers, selectedChannelIndex, signal?.channelNames, spectralAnalysis.dominantFrequency]);
 
   const analysisMetrics = useMemo(
     () => ({
       "Frecuencia de muestreo": `${activeSignal?.samplingRate ?? 0} Hz`,
       "Duración del registro": `${recordingDuration.toFixed(2)} s`,
-      "Potencia Delta": bandPowers.delta.toFixed(3),
-      "Potencia Theta": bandPowers.theta.toFixed(3),
-      "Potencia Alpha": bandPowers.alpha.toFixed(3),
-      "Potencia Beta": bandPowers.beta.toFixed(3),
-      "Potencia Gamma": bandPowers.gamma.toFixed(3),
+      "Frecuencia dominante": `${spectralAnalysis.dominantFrequency.toFixed(2)} Hz`,
+      "Potencia relativa Delta": `${relativeBandPowers.delta.toFixed(1)} %`,
+      "Potencia relativa Theta": `${relativeBandPowers.theta.toFixed(1)} %`,
+      "Potencia relativa Alpha": `${relativeBandPowers.alpha.toFixed(1)} %`,
+      "Potencia relativa Beta": `${relativeBandPowers.beta.toFixed(1)} %`,
+      "Potencia relativa Gamma": `${relativeBandPowers.gamma.toFixed(1)} %`,
     }),
-    [activeSignal?.samplingRate, bandPowers.alpha, bandPowers.beta, bandPowers.delta, bandPowers.gamma, bandPowers.theta, recordingDuration],
+    [
+      activeSignal?.samplingRate,
+      recordingDuration,
+      relativeBandPowers.alpha,
+      relativeBandPowers.beta,
+      relativeBandPowers.delta,
+      relativeBandPowers.gamma,
+      relativeBandPowers.theta,
+      spectralAnalysis.dominantFrequency,
+    ],
   );
 
   const analysisResults = useMemo(
@@ -257,6 +297,8 @@ export function EEGLab() {
           </div>
         </section>
 
+        <ClinicalDisclaimer />
+
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
             <SignalUploader
@@ -306,6 +348,7 @@ export function EEGLab() {
               filteredSignal={filteredSignal}
               activeFilter={activeFilter}
               onFilterChange={setActiveFilter}
+              allowedFilters={FILTERS_BY_MODALITY.eeg}
             />
             <SignalViewer
               signal={activeSignal}
@@ -345,7 +388,7 @@ export function EEGLab() {
                           plot_bgcolor: "rgba(0,0,0,0)",
                           dragmode: "zoom",
                           xaxis: { title: "Frecuencia (Hz)", showgrid: true, gridcolor: "rgba(15,23,42,0.08)" },
-                          yaxis: { title: "Potencia", showgrid: true, gridcolor: "rgba(15,23,42,0.08)" },
+                          yaxis: { title: "Potencia (u.a.)", showgrid: true, gridcolor: "rgba(15,23,42,0.08)" },
                         }}
                         config={{ displayModeBar: true, responsive: true, scrollZoom: true }}
                         style={{ width: "100%", height: "100%" }}

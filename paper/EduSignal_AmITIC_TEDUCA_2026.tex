@@ -1,0 +1,496 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+% The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
+\usepackage{cite}          % citations; ALWAYS before hyperref
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{multirow}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+% --- Links (citations/refs as hyperlinks with green box) ---
+\usepackage{tikz}
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=false,               % false = box; true = colored text
+  citebordercolor={0 1 0},        % green box for \cite
+  linkbordercolor={0 1 0},        % green box for \ref (figures/tables)
+  urlbordercolor={0 1 0},         % green box for URLs
+  pdfborderstyle={/S/S/W 1}       % box-type border, width 1
+}
+
+% --- ORCID icon (rendered with tikz; the orcidlink package is not required) ---
+\definecolor{orcidlogocol}{HTML}{A6CE39}
+% El icono se alinea por la linea base de su propio texto, de modo que se apoya
+% en la linea como el resto de los caracteres, y va sin recuadro de enlace para
+% no recargar la firma. El espacio fino lo separa de la marca de afiliacion.
+\newcommand{\orcidicon}[1]{\,\begingroup%
+  \hypersetup{urlbordercolor={1 1 1}}%
+  \href{https://orcid.org/#1}{%
+    \tikz[baseline=(orc.base)]{\node(orc)[shape=circle,fill=orcidlogocol,%
+    text=white,inner sep=0.9pt,font=\tiny\bfseries]{iD};}}\endgroup}
+
+% --- Figure placement control (prevents floating to the end) ---
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.75}
+\renewcommand{\dbltopfraction}{0.95}
+\renewcommand{\dblfloatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{3}
+\setcounter{totalnumber}{5}
+\setcounter{dbltopnumber}{3}
+
+\begin{document}
+
+\title{EduSignal: An Intelligent Platform for the Analysis and Learning of Biosignals \\
+
+}
+
+\author{\IEEEauthorblockN{
+Manuela Mendoza-Barona\IEEEauthorrefmark{1}\orcidicon{0009-0009-5275-5679},
+Aar\'on Rodr\'iguez Ram\'irez\IEEEauthorrefmark{2}\orcidicon{0009-0008-9336-3287},\\
+Samuel Banguero Balanta\IEEEauthorrefmark{3}\orcidicon{0009-0006-3300-8764},
+Carlos G. Hidalgo S.\IEEEauthorrefmark{4}\orcidicon{0000-0003-2308-0720},
+Carlos M. Paredes\IEEEauthorrefmark{4}\orcidicon{0000-0002-8951-5259},\\
+Jorge Luis Pincay Lozada\IEEEauthorrefmark{5}\orcidicon{0000-0002-4929-8798},
+and Mario Alejandro Bravo-Ortiz\IEEEauthorrefmark{1}\orcidicon{0000-0003-3560-1300}%
+}
+
+\IEEEauthorblockA{
+\IEEEauthorrefmark{1}\textit{Departamento de Electr\'onica y Automatizaci\'on},
+\textit{Universidad Aut\'onoma de Manizales}, Manizales, Caldas, Colombia
+}
+
+\IEEEauthorblockA{
+\IEEEauthorrefmark{2}\textit{Depto. de Ingenier\'ia en Sistemas Computacionales},
+\textit{Tecnol\'ogico Nacional de M\'exico, Campus Acapulco}, Guerrero, Mx.
+}
+
+\IEEEauthorblockA{
+\IEEEauthorrefmark{3}\textit{Facultad de Ingenier\'ias},
+\textit{Instituci\'on Universitaria Antonio Jos\'e Camacho}, Cali, Colombia
+}
+
+\IEEEauthorblockA{
+\IEEEauthorrefmark{4}\textit{Facultad de Ingenier\'ia, LIDIS},
+\textit{Universidad de San Buenaventura Cali}, Cali, Colombia
+}
+
+\IEEEauthorblockA{
+\IEEEauthorrefmark{5}\textit{Unidad de Ingenier\'ias, Ingenier\'ia de Software},
+\textit{Corporaci\'on Universitaria Minuto de Dios}, Bogot\'a, Colombia\\
+\textit{Universidad Aut\'onoma de Occidente}, Cali, Colombia;
+\textit{Universidad de Ja\'en}, Ja\'en, Espa\~na
+}
+
+\IEEEauthorblockA{
+\IEEEauthorrefmark{1}manuela.mendozab@autonoma.edu.co,
+\IEEEauthorrefmark{2}L22320868@acapulco.tecnm.mx,\\
+\IEEEauthorrefmark{3}sbanguerob@estudiante.uniajc.edu.co,
+\IEEEauthorrefmark{4}cghidalgos@usbcali.edu.co,
+\IEEEauthorrefmark{4}cmparedesv@usbcali.edu.co,\\
+\IEEEauthorrefmark{5}jorge.pincay@uniminuto.edu,\
+\IEEEauthorrefmark{1}mario.bravoo@autonoma.edu.co
+}
+
+% --- ISBN exigido por AmITIC & TEDUCA 2026 (pie de la primera pagina, margen izquierdo) ---
+\thanks{\hspace*{-1em}ISBN: 979-8-3195-2019-7}
+}
+
+\maketitle
+
+\begin{abstract}
+Biosignal processing is a core competence in biomedical engineering education, yet learning it requires combining several specialized tools. This work presents EduSignal, a web-based virtual laboratory for electrocardiographic (ECG), electroencephalographic (EEG) and electromyographic (EMG) signals, and separates its platform architecture, implemented algorithms and development methodology. The algorithms, specified as difference equations and transfer functions, are standard techniques: first-order IIR sections, a second-order notch, Welch spectral estimation and robust median/MAD detection rules. The contribution lies in their integration with an interpretable rate classifier and a pre-trained language model (Claude, \texttt{claude-opus-4-1}, adapted by system prompting only), and in their quantitative validation. On 44 non-paced MIT-BIH records ($100{,}733$ beats, $\pm150$~ms tolerance), QRS detection with baseline removal attains $93.93\%$ sensitivity, $96.60\%$ positive predictivity and $F_1=95.24\%$; detected and reference beat counts coincide in $83\%$ of ten-second windows, and a three-label rule that separates insufficient data from abnormal rate agrees with the reference in $89.51\%$ of $7{,}920$ windows. On all $109$ subjects of the EEG Motor Movement/Imagery Dataset, alpha power rises on eye closure in $106$, and after baseline removal the dominant frequency lies in the alpha band in $75$ eyes-closed recordings against $6$ eyes-open ones. Synthetic tests bound the spectral error by half a frequency bin and the EMG onset and offset error by $50$~ms. A suite of 65 tests covers $94.5\%$ of the processing core, and the validation exposed and corrected several implementation defects. No pedagogical study was conducted, so no learning outcome is claimed.
+\end{abstract}
+
+\begin{IEEEkeywords}
+biosignals, ECG, EEG, EMG, digital signal processing, virtual laboratory, biomedical engineering education, CRISP-ML(Q), QRS detection, algorithm validation, software quality
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+Biosignals are a fundamental source of information on the functioning of the human body in bioengineering, physiology and the health sciences. The electrocardiogram (ECG), electromyogram (EMG) and electroencephalogram (EEG) give access to cardiac, muscular and cerebral activity, and have driven the development of signal processing and artificial intelligence techniques for extracting physiological information \cite{ANBALAGAN2023100089,MISHRA2026110958,WANG2026103417}.
+
+In physiology and instrumentation laboratories, students acquire real signals in order to apply digital processing concepts. Most practical activities, however, require specialized software or programming environments demanding additional technical knowledge, so much time is spent cleaning, organizing and plotting signals with generic tools rather than on the underlying physiological phenomena. Filtering, event detection, feature extraction and frequency analysis are moreover difficult to connect with the practical interpretation of the traces. Interactive tools and virtual environments have been shown to favor the learning of these concepts through experimentation and real-time visualization of results \cite{CHACON202413,DEB202464,ROSAS2022218}, and virtual laboratories with intelligent support have emerged as promising alternatives for improving accessibility and personalization of teaching--learning processes \cite{WAHAB2026109490,KUMAR2022100480}.
+
+\subsection{Contributions and Scope of Novelty}
+\label{sec:novelty}
+
+This subsection states explicitly which elements are new and which are applications of established techniques.
+
+\textbf{What is \emph{not} novel.} The processing operators are standard and are presented only for reproducibility: first-order recursive IIR low-pass, high-pass and band-pass sections; a second-order notch; amplitude-threshold QRS detection with a refractory period, conceptually descended from Pan and Tompkins \cite{panTompkins1985}; Welch-averaged band power; and rectification with an RMS envelope for EMG. No claim of algorithmic advance is made for any of these. The rate-based classifier is likewise a deliberately simple interpretable baseline, not a competitor to deep-learning arrhythmia detectors \cite{LI2022103424,HONG2022109213}.
+
+\textbf{What is novel.} Four elements are claimed as contributions. First, the \emph{integration} of three modality-specific laboratories, automatic metric extraction, staged educational explanations, and conversational assistance within a single deployable environment, which Section~\ref{sec:related} shows to be uncommon. Second, an \emph{explicit and reproducible specification} of the processing chain as difference equations and transfer functions (Section~\ref{sec:algorithms}). Third, a \emph{quantitative validation protocol} for an educational tool (Section~\ref{sec:protocol}), an artifact class usually reported only qualitatively; it characterizes not only aggregate accuracy but the conditions under which the defaults fail. Fourth, the \emph{coupling of an interpretable rule layer with a pre-trained language model}, in which the deterministic layer produces the label, keeping the assessment auditable.
+
+\section{Related Work}
+\label{sec:related}
+
+In the educational field, interactive tools and virtual laboratories for teaching engineering and signal processing have shown that interactive platforms favor practical learning and improve the understanding of complex concepts \cite{CHACON202413,DEB202464,ROSAS2022218}, and virtual laboratories enhanced by artificial intelligence evidence the potential of these technologies for more personalized learning \cite{WAHAB2026109490,KUMAR2022100480}.
+
+A separate body of work addresses the automatic processing of physiological signals. For the ECG, studies present techniques for noise filtering, QRS detection, and automatic classification of cardiac events \cite{ANBALAGAN2023100089,LI2022103424}, with deep-learning models reaching high accuracy in detecting cardiac anomalies \cite{HONG2022109213}. For the EEG, reviews highlight advances in acquisition, processing, and classification of brain activity \cite{MISHRA2026110958} and attention mechanisms in brain--computer interfaces \cite{WANG2026103417}.
+
+Two gaps motivate this work. First, the two bodies of literature remain largely disjoint: analysis-oriented studies optimize accuracy without an instructional layer, whereas educational tools rarely expose validated pipelines. Second, educational platforms are typically evaluated by usability or perceived-learning surveys, and the correctness of the algorithms students are asked to trust is seldom quantified against annotated references. EduSignal addresses the first by integration and the second by the protocol of Section~\ref{sec:protocol}.
+
+\section{Development Methodology}
+\label{sec:methodology}
+
+This section describes \emph{how} the system was built; its structural decomposition is deferred to Section~\ref{sec:architecture} and the mathematics of the processing stages to Section~\ref{sec:algorithms}.
+
+Two complementary process models were combined. \textit{Rapid Application Development} (RAD) \cite{yen2019rapid} governed the interactive layer, whose requirements were expected to evolve through contact with students and instructors, supplying short iterations with functional prototypes of the viewer, the processing panel, and the laboratory routing. The analytical layer followed CRISP-ML(Q) \cite{make3020020}. This requires justification, since EduSignal contains no trained model: its interpretation layer is a deterministic rule. CRISP-ML(Q) is adopted for its \emph{quality-assurance} scaffolding, not its modelling phases. Data understanding, data preparation, feature engineering and, above all, evaluation map onto the system; it is the evaluation phase that imposes the ground-truth protocol of Section~\ref{sec:protocol} on components a conventional software process would have accepted after visual inspection. The training phase is empty by construction and monitoring is limited to logging. The rule layer sits where a learned model would, so the existing harness can score its replacement unmodified. The six phases were instantiated as follows: \emph{domain and data understanding}, identifying the formative needs of bioinstrumentation courses and the frequency ranges, noise sources and events of interest of each modality, with public PhysioNet databases as reference (Table~\ref{tab:datasets}); \emph{data preparation}, reading WFDB, EDF and CSV and applying the preprocessing of Section~\ref{sec:filters}; \emph{feature engineering}, the per-modality descriptors of Section~\ref{sec:features}; \emph{evaluation}, the protocol of Section~\ref{sec:protocol}, covering both algorithmic performance against annotated ground truth and software quality; \emph{deployment}, packaging through Docker Compose as independent services; and \emph{monitoring}, limited to logging interactions. Quality assurance is transversal to all six.
+
+\section{Platform Architecture}
+\label{sec:architecture}
+
+This section describes \emph{what the system is made of}. EduSignal implements a client--server architecture of six modules: user interface, backend server, biosignal processing, intelligence engine, data storage, and deployment infrastructure, with the processing module deliberately decoupled from the interface so that algorithms can be replaced without altering the student-facing experience.
+
+The frontend is developed with React, Vite, and TanStack Router, and hosts the three modality laboratories together with the whole digital processing chain, which executes client-side. The backend, implemented with Node.js and Express, exposes the interpretation and conversational-assistant services and persists information in SQLite. Deployment is managed through Docker containers orchestrated with Docker Compose. Recordings are read in the browser from WFDB (formats 212 and 16), EDF/EDF+ and CSV; a Python utility converting PhysioNet records to CSV is a preparation aid outside the runtime, and no processing occurs outside the browser. The interaction flow is uniform across modalities: the student selects a modality, loads a compatible recording, the platform identifies the file type, executes the preprocessing, computes the physiological metrics, and presents the results with an educational explanation.
+
+\section{Implemented Algorithms}
+\label{sec:algorithms}
+
+This section specifies \emph{what the system computes}. Let $x[n]$, $n=0,\dots,N-1$, be the discrete signal acquired at sampling frequency $F_s$, with $t_n=n/F_s$. Fig.~\ref{fig:dsp} summarizes the three modality-specific chains.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{fig_pipeline.pdf}
+\caption{Processing chains actually implemented in EduSignal. Only the loading stage is shared: the filtering protocol and the rest of the chain are modality-specific. Every parameter shown corresponds to a constant in the deployed source code, and the sampling frequency of each database is reported together with its Nyquist limit to make the admissible band explicit.}
+\label{fig:dsp}
+\end{figure*}
+
+\subsection{Digital Filters}
+\label{sec:filters}
+
+All filters are built from a single first-order recursive low-pass section with cutoff $f_c$:
+\begin{equation}
+y[n] = \alpha\, y[n-1] + (1-\alpha)\, x[n], \qquad \alpha = e^{-2\pi f_c / F_s},
+\label{eq:lowpass}
+\end{equation}
+whose transfer function is
+\begin{equation}
+H_{\mathrm{LP}}(z;f_c) = \frac{1-\alpha}{1-\alpha z^{-1}}.
+\label{eq:lowpasstf}
+\end{equation}
+The platform instantiates \eqref{eq:lowpass} with $f_c=20$~Hz for the low-pass option. The high-pass, which removes the baseline drift, is obtained as the complement of a low-pass tuned at $f_c=1$~Hz:
+\begin{equation}
+H_{\mathrm{HP}}(z) = 1 - H_{\mathrm{LP}}(z;1\,\mathrm{Hz}),
+\label{eq:highpass}
+\end{equation}
+that is, $y_{\mathrm{HP}}[n]=x[n]-y_{\mathrm{LP}}[n]$. The band-pass used to isolate the QRS band is the cascade of the baseline high-pass and a $40$~Hz low-pass:
+\begin{equation}
+H_{\mathrm{BP}}(z) = H_{\mathrm{LP}}(z;40\,\mathrm{Hz})\,\bigl[\,1 - H_{\mathrm{LP}}(z;1\,\mathrm{Hz})\,\bigr].
+\label{eq:bandpass}
+\end{equation}
+Finally, power-line interference is suppressed by a second-order notch centered at $f_0=60$~Hz:
+\begin{equation}
+\begin{split}
+y[n] = {}& x[n] - 2\cos(\omega_0)\,x[n-1] + x[n-2] \\
+        & + 2r\cos(\omega_0)\,y[n-1] - r^{2}y[n-2],
+\end{split}
+\label{eq:notch}
+\end{equation}
+\begin{equation}
+H_{\mathrm{N}}(z) = \frac{1-2\cos(\omega_0)z^{-1}+z^{-2}}{1-2r\cos(\omega_0)z^{-1}+r^{2}z^{-2}},
+\label{eq:notchtf}
+\end{equation}
+with $\omega_0 = 2\pi f_0/F_s$ and pole radius $r=0.995$, which places zeros on the unit circle at $\pm\omega_0$ and poles just inside it, yielding a narrow notch.
+
+Since \eqref{eq:lowpass} is a first-order section, the roll-off is $-20$~dB/decade: a deliberate simplification, since a single-pole magnitude response is directly interpretable, at the cost of a gentler transition band. The measured gain of \eqref{eq:bandpass} at $150$~Hz is $0.343$, against the analytical $(1-\alpha)/\lvert 1-\alpha e^{-j\omega}\rvert = 0.346$.
+
+Each modality has its own filtering protocol (Fig.~\ref{fig:dsp}): the ECG laboratory offers the five options; the EEG laboratory omits the $20$~Hz low-pass, which would suppress the $\beta$ and $\gamma$ bands on which power is reported; and the EMG laboratory applies no IIR filter, since all options target the ECG band and would remove most EMG content. In every modality an option is disabled, and the routine returns the signal unchanged, when its characteristic frequency ($1$, $20$, $40$ or $60$~Hz) reaches $F_s/2$; for the databases used, all enabled options and the $50$~Hz edge of $\gamma$ lie below the Nyquist limits of $180$~Hz (ECG) and $80$~Hz (EEG).
+
+\subsection{QRS Complex Detection (ECG)}
+\label{sec:qrs}
+
+Detection operates on a smoothed signal $x_s[n]$, a centred moving average of length $W=\max(5,\mathrm{round}(F_s/50))$, with a robust threshold from the median and the median absolute deviation:
+\begin{equation}
+\theta = \operatorname{med}(x_s) + \max\bigl(0.5,\; 3\cdot \operatorname{MAD}(x_s)\bigr),
+\label{eq:threshold}
+\end{equation}
+where $\operatorname{MAD}(x_s)=\operatorname{med}\bigl(\lvert x_s-\operatorname{med}(x_s)\rvert\bigr)$. An index $n$ is declared an R peak when it is a strict local maximum, exceeds $\theta$, and respects a refractory period of $0.28$~s:
+\begin{equation}
+x_s[n] > x_s[n-1],\quad x_s[n]\ge x_s[n+1],\quad x_s[n] > \theta,
+\label{eq:peakrule}
+\end{equation}
+\begin{equation}
+n - n_{k-1} \;\ge\; \mathrm{round}(0.28\,F_s).
+\label{eq:refractory}
+\end{equation}
+The resulting set $\mathcal{R}=\{n_1,\dots,n_K\}$ defines the $K$ detected beats. Note that $\theta$ in \eqref{eq:threshold} is computed once over the whole loaded segment rather than adaptively over a sliding window; the consequences of this choice are quantified in Section~\ref{sec:results-qrs}.
+
+\subsection{Spectral Analysis (EEG)}
+
+The power spectral density is estimated with Welch's method: the signal is split into segments of $L=\lfloor 4F_s\rfloor$ samples ($4$~s) with $50\%$ overlap, each weighted by a Hann window $w[n]$, and the periodograms averaged over the $M$ segments:
+\begin{equation}
+\hat{S}[k] = \frac{1}{M}\sum_{m=1}^{M} \frac{c_k\,\bigl\lvert \sum_{n=0}^{L-1} w[n]\,x_m[n]\,e^{-j2\pi kn/L} \bigr\rvert^{2}}{F_s\sum_{n=0}^{L-1} w[n]^{2}},
+\label{eq:welch}
+\end{equation}
+where $x_m$ is the $m$-th segment and $c_k=1$ for the DC and Nyquist bins, $2$ otherwise, giving a one-sided density. The $4$~s segment gives a resolution $\Delta f=0.25$~Hz, sufficient to separate the physiological bands, and averaging reduces the variance with respect to a single periodogram over the whole record. Recordings shorter than one segment are processed as one windowed segment. The analysis is applied to one channel at a time, with no spatial averaging across the 64 EEG derivations. The power of each band $B\in\{\delta,\theta,\alpha,\beta,\gamma\}$ with limits $[f_B^{\min},f_B^{\max})$ follows by discrete integration:
+\begin{equation}
+P_B = \Delta f \sum_{k\,:\, f_B^{\min} \le f_k < f_B^{\max}} \hat{S}[k],
+\label{eq:bandpower}
+\end{equation}
+with $f_k = kF_s/L$ and $\delta{:}[0.5,4)$, $\theta{:}[4,8)$, $\alpha{:}[8,13)$, $\beta{:}[13,30)$, $\gamma{:}[30,50)$~Hz. The dominant frequency is $f_{\mathrm{dom}}=f_{k^\star}$ with $k^\star=\arg\max \hat{S}[k]$ over $0.5\le f_k<50$~Hz. The restriction matters on real recordings, where DC, slow drift and $60$~Hz interference otherwise dominate: searching all bins, the prototype reported $f_{\mathrm{dom}}\le0.25$~Hz in $67$ of the $109$ eyes-closed recordings of Section~\ref{sec:results-eegpop}. Each segment transform is evaluated directly from its definition, at $O(L^{2})$ cost; segmenting therefore also bounds the computation, which runs in the browser.
+
+\subsection{EMG Processing}
+
+The signal is full-wave rectified, $x_r[n]=\lvert x[n]\rvert$, and its envelope $e[n]$ estimated with a sliding root mean square over a \emph{centred} $100$~ms window ($400$ samples at $F_s=4$~kHz), advanced one sample at a time. Centring matters because the analysis is offline: a trailing window delays the detected end of a contraction by about its own length. Activation is then segmented with the robust scheme of \eqref{eq:threshold}, retuned for the lower contrast of the envelope:
+\begin{equation}
+\theta_{\mathrm{EMG}} = \operatorname{med}(e) + \max\bigl(2.5\cdot\operatorname{MAD}(e),\; 0.25\cdot\operatorname{med}(e)\bigr).
+\label{eq:emgthreshold}
+\end{equation}
+A contraction is a maximal interval with $e[n]>\theta_{\mathrm{EMG}}$, delimited by its onset and offset. Episodes whose envelope excursion is shorter than $200$~ms are discarded; since the window widens each event by about its own length, this rejects true events below some $100$~ms (a minimum equal to the window, as in the prototype, is unreachable). The second term of \eqref{eq:emgthreshold} is a floor relative to the median, because an absolute floor in mV depends on gain and electrode: the prototype's $0.1$~mV, tuned on a demonstration signal, suppressed every detection on the needle recording of Section~\ref{sec:results-qual}. The procedure returns onset--offset pairs, which is what makes the timing error of Section~\ref{sec:results-eegemg} measurable.
+
+\subsection{Feature Extraction}
+\label{sec:features}
+
+In ECG, heart rate and RR intervals are derived from $\mathcal{R}$:
+\begin{equation}
+\mathrm{BPM} = \frac{60\,K}{t_{N-1}-t_0}, \qquad
+\overline{RR} = \frac{1000}{K-1}\sum_{k=1}^{K-1}\frac{n_{k+1}-n_k}{F_s}\;[\mathrm{ms}].
+\label{eq:bpm}
+\end{equation}
+In EEG, absolute and relative band powers $\hat{P}_B = P_B/\sum_{B'}P_{B'}$ are reported together with $f_{\mathrm{dom}}$. In EMG, four amplitude and energy indicators are estimated over the rectified signal:
+\begin{align}
+\mathrm{RMS} &= \sqrt{\tfrac{1}{N}\textstyle\sum_{n} x_r[n]^2}, &
+\mathrm{MAV} &= \tfrac{1}{N}\textstyle\sum_{n} |x_r[n]|, \label{eq:emg1}\\
+\sigma^2 &= \tfrac{1}{N}\textstyle\sum_{n} (x_r[n]-\mu)^2, &
+E &= \textstyle\sum_{n} x_r[n]^2, \label{eq:emg2}
+\end{align}
+where $\mu$ is the mean of $x_r$. The recordings are expressed in millivolts, so RMS and MAV are in mV, the variance in mV$^2$, and the energy in mV$^2\cdot$sample; the latter is proportional to the segment length and comparable only between segments of equal duration. No amplitude normalisation (e.g., to a maximum voluntary contraction) is applied, because the database provides no reference contraction, so the values are not comparable across subjects or electrodes.
+
+\subsection{Rule-Based Event Classifier}
+
+Each ECG segment receives a label $\hat{y}$ and a confidence $c$ from a deterministic rate rule:
+\begin{equation}
+\hat{y} =
+\begin{cases}
+\text{Inconclusive}\ (c{=}0), & K < 5,\\
+\text{Possible arrhythmia}\ (c{=}0.84), & \mathrm{BPM} > 100 \;\vee\; \mathrm{BPM} < 50,\\
+\text{Normal}\ (c{=}0.72), & \text{otherwise,}
+\end{cases}
+\label{eq:rules}
+\end{equation}
+with rates in BPM and the branches evaluated in order.
+The first branch is a data-sufficiency criterion, kept separate from the physiological one: fewer than five beats reflect a short or poor recording, not an abnormal rhythm. The rate limits follow the ACC/AHA/HRS definitions of sinus bradycardia ($<50$~BPM) \cite{kusumoto2019bradycardia} and sinus tachycardia ($>100$~BPM) \cite{page2016svt}. The prototype labelled $K<5$ as a possible arrhythmia and also tested $\overline{RR}<40$~ms, a condition the refractory period \eqref{eq:refractory} makes unreachable because it forces $\overline{RR}\ge 280$~ms whenever $K\ge 2$. This classifier is an interpretable baseline, decoupled from the interface so that it can be replaced by learned models \cite{LI2022103424} without altering the user experience. It screens \emph{rate} only and makes no morphological assessment; its scope is delimited in Section~\ref{sec:results-classifier}.
+
+\subsection{Conversational Assistant}
+\label{sec:llm}
+
+The assistant is backed by a \emph{pre-trained} large language model accessed remotely: Claude, model identifier \texttt{claude-opus-4-1} \cite{anthropic-claude}, invoked through the Anthropic Messages API with a budget of $1024$ tokens per response. Domain adaptation is performed exclusively by \emph{system-prompt conditioning}: a fixed instruction casts the model as a tutor for a biosignal processing platform, states its domain as ECG, EMG and EEG concepts, and asks for clear, educational answers in the student's language. No fine-tuning, parameter-efficient adaptation, or retrieval-augmented generation is applied and no task-specific corpus was collected, so the model operates zero-shot over its parametric knowledge; there is no external document store, and the answer is therefore not grounded in any retrievable source.
+
+Each request is stateless and carries only the student's question: no history, no metric and no sample of the recording are transmitted, so no physiological data leave the browser. API failures surface as an explicit error, but the content of a successful response is not verified. This component has not been evaluated in any dimension --- accuracy, relevance, safety, or consistency --- and no claim of this paper rests on it: the interpretation shown to the student comes from the deterministic rule \eqref{eq:rules}, quantified in Section~\ref{sec:results-classifier}. The assistant is an auxiliary aid, presented as such with a notice that it does not provide clinical advice.
+
+\section{Validation Protocol}
+\label{sec:protocol}
+
+\subsection{Reference Databases}
+
+Public PhysioNet databases are used (Table~\ref{tab:datasets}). ECG signals come from the MIT-BIH Arrhythmia Database \cite{932724}; EEG signals from the EEG Motor Movement/Imagery Dataset \cite{PhysioNet-eegmmidb-1.0.0}; and EMG signals from the Examples of Electromyograms set \cite{Goldberger2000PhysioNet}.
+
+\begin{table}[!t]
+\caption{Databases and the portion of each used for validation}
+\centering
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccl}
+\hline
+Database & Signal & $F_s$ & Ch. & Used in this work\\
+\hline
+MIT-BIH Arrhythmia & ECG & 360 Hz & 2 & 44 records, MLII lead\\
+EEG Motor Mov./Imagery & EEG & 160 Hz & 64 & 109 subjects, R01+R02, Oz\\
+Examples of EMG & EMG & 4 kHz & 1 & \texttt{emg\_healthy}\\
+\hline
+\end{tabular}
+\label{tab:datasets}
+\end{table}
+
+\subsection{Protocol for the QRS Detection Algorithm}
+\label{sec:protocol-qrs}
+
+The protocol follows the reporting practice of ANSI/AAMI EC57 \cite{aami-ec57}. All 48 records of the MIT-BIH Arrhythmia Database were considered, excluding the four paced records (102, 104, 107, 217) as prescribed by the standard, leaving 44 records and $100{,}733$ annotated beats; each record is analyzed in full ($30$~min), selecting the MLII lead when present and otherwise the first channel, reproducing the criterion of the platform's data-preparation utility. Ground truth is the reference annotation set distributed with the database, restricted to the standard beat codes (\texttt{N, L, R, a, V, F, J, A, S, E, j, /, Q, B, e, n, f, r}); rhythm, noise and artifact marks are ignored.
+
+Each reference annotation is matched to at most one detection, and each detection to at most one annotation, within a tolerance of $\pm150$~ms; matching is greedy over time, selecting the nearest unmatched detection inside the window. With $TP$, $FP$, and $FN$ the matched, spurious, and missed beats, we report sensitivity $Se=TP/(TP+FN)$, positive predictivity $+P=TP/(TP+FP)$, their harmonic mean $F_1$, and the detection error rate $DER=(FP+FN)/(TP+FN)$, aggregated over the pooled beat counts. Since the preprocessing filter is exposed to the student as a choice, detection is evaluated under three settings: no filter, baseline high-pass \eqref{eq:highpass}, and band-pass \eqref{eq:bandpass}. The harness invokes the platform's own production functions, readers included, extracted unmodified from the source tree; the WFDB reader is checked against the checksums declared in all 44 headers. Rate estimation is assessed on the same windows as the classifier (Section~\ref{sec:protocol-classifier}): whenever both the reference annotations and the detections contain at least five beats, \eqref{eq:bpm} is evaluated on each set and the absolute differences in BPM and $\overline{RR}$ are pooled.
+
+\subsection{Protocol for the Rule-Based Classifier}
+\label{sec:protocol-classifier}
+
+Each record is partitioned into non-overlapping $10$~s windows, the analysis granularity typical of student use, yielding $7{,}920$ windows. The rule emits three labels, since \eqref{eq:rules} separates the data-sufficiency criterion from the physiological one. Because \eqref{eq:rules} is a \emph{rate} rule and not a morphological arrhythmia detector, evaluating it against clinical arrhythmia labels would misstate its purpose. The reference label for each window is therefore obtained by applying the same rule to the \emph{reference annotations} of that window, which quantifies how faithfully the pipeline reproduces the label that perfect beat detection would give and isolates the contribution of the detector. This is explicitly \emph{not} a measure of clinical arrhythmia detection accuracy.
+
+\subsection{Protocol for Software Quality}
+\label{sec:protocol-software}
+
+Software quality is assessed with a regression suite for the processing core executed with Vitest, reporting statement, branch, function, and line coverage under V8 instrumentation. The suite validates the filters against analytically derived gains at selected frequencies, the detector against synthetic beat trains of known rate, the spectral estimator against pure sinusoids, and the format readers against byte sequences decoded by hand from the WFDB 212 specification. Static analysis uses ESLint over the whole frontend, and dependency counts come from the production build.
+
+\subsection{Protocol for the EEG and EMG Chains}
+\label{sec:protocol-eegemg}
+
+Neither the EEG nor the EMG database provides event-level annotations comparable to the MIT-BIH beat marks: the motor imagery dataset annotates task epochs rather than spectral states, and the EMG examples carry no contraction boundaries. Both chains are therefore evaluated against \emph{synthetic ground truth}, and the EEG chain additionally against an established physiological reference on the complete dataset.
+
+For that population test, the two one-minute baseline runs of each of the 109 subjects, eyes open (R01) and eyes closed (R02), are analysed on channel Oz, where the posterior alpha rhythm is strongest. The reference is the Berger effect: alpha power must rise when the eyes close. For every subject we record whether $P_\alpha$ increases from R01 to R02, whether $f_{\mathrm{dom}}$ falls in the $\alpha$ band, and whether $\alpha$ is the band of largest power, both without filtering and with the $1$~Hz high-pass of the EEG protocol. No subject is excluded.
+
+For the EEG, twelve $60$~s signals at $F_s=160$~Hz are generated, each a unit sinusoid plus uniform noise of amplitude $0.3$, at frequencies both on and off the $0.25$~Hz grid ($2$, $3.1$, $6$, $7.4$, $10$, $10.1$, $12$, $20$, $23.37$, $25$, $35$, $45$~Hz), so the resolution limit is exercised rather than concealed. We measure the error of the dominant frequency and whether the band carrying most power contains the generating frequency; normalisation is checked against Parseval's theorem, comparing the total band power of a noiseless sinusoid of amplitude $A$ with $A^{2}/2$.
+
+For the EMG, a $10$~s signal at $F_s=4$~kHz is built from a $0.02$ baseline noise floor with four bursts of amplitude $0.5$ inserted at known instants, of durations between $0.6$ and $1.4$~s. The onset and offset produced by the segmentation are compared with those instants, and the mean absolute timing error is reported.
+
+\section{Results}
+\label{sec:results}
+
+EduSignal was deployed as an operational client--server application in which each of the three laboratories integrates file loading, the signal viewer, the processing panel with the filter selection its modality admits, the metrics panel, and the automatic interpretation card.
+
+
+\subsection{QRS Detection Performance}
+\label{sec:results-qrs}
+
+Table~\ref{tab:qrs} reports the aggregate performance over the 44 non-paced records. Preprocessing has a decisive effect: removing the baseline raises positive predictivity from $90.41\%$ to $96.60\%$, cutting spurious detections from $9{,}843$ to $3{,}332$, and reduces the detection error rate from $17.66\%$ to $9.38\%$. The baseline high-pass slightly outperforms the full band-pass, indicating that in this database the dominant error source is low-frequency wander rather than high-frequency noise, and that the additional $40$~Hz low-pass attenuates part of the QRS slope on which the threshold rule relies.
+
+\begin{table}[!t]
+\caption{QRS detection over 44 non-paced MIT-BIH records ($100{,}733$ beats, $\pm150$~ms tolerance)}
+\centering
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lrrrrrrr}
+\toprule
+\textbf{Filter} & \textbf{TP} & \textbf{FP} & \textbf{FN} & \textbf{Se} & \textbf{+P} & \textbf{$F_1$} & \textbf{DER}\\
+\midrule
+None       & 92\,791 & 9\,843 & 7\,942 & 92.12 & 90.41 & 91.25 & 17.66\\
+High-pass  & 94\,614 & 3\,332 & 6\,119 & \textbf{93.93} & \textbf{96.60} & \textbf{95.24} & \textbf{9.38}\\
+Band-pass  & 93\,529 & 3\,415 & 7\,204 & 92.85 & 96.48 & 94.63 & 10.54\\
+\bottomrule
+\end{tabular}
+\label{tab:qrs}
+\end{table}
+
+The aggregate figures understate typical behaviour because they pool beats across records of unequal difficulty. Under the high-pass setting the \emph{median} per-record sensitivity is $99.39\%$ and 28 of the 44 records exceed $99\%$; the mean is depressed by seven records below $90\%$. The four worst cases are records 207 ($12.3\%$), 108 ($47.1\%$), 222 ($62.3\%$), and 232 ($75.0\%$). This distribution follows directly from the global threshold of \eqref{eq:threshold}: record 207 contains episodes of ventricular flutter whose morphology violates the amplitude-plus-refractory model, record 108 exhibits low-amplitude beats superimposed on strong noise, and records 222 and 232 alternate between rhythms of markedly different amplitude, so a single median/MAD threshold over the entire recording cannot fit both regimes. The failure is not random but a characterisable consequence of assuming stationarity.
+
+Rate estimation inherits this behaviour. Over the $7{,}599$ windows in which both the reference and the detections contain at least five beats, the two beat counts coincide exactly in $82.71\%$ of windows, so the median absolute errors are $0$~BPM and $0.2$~ms for $\overline{RR}$; the means, $3.38$~BPM and $37.8$~ms, are driven by the minority of windows with a missed or spurious beat. Since a $10$~s window quantises the rate in steps of about $6$~BPM per beat, the error is either zero or at least one beat. The bias is negligible ($+0.07$~BPM; $+6.6$~ms), $83.7\%$ of windows estimate $\overline{RR}$ within $20$~ms, and the median rate error over complete records is $0.30$~BPM.
+
+\subsection{Rule-Based Classifier Performance}
+\label{sec:results-classifier}
+
+Table~\ref{tab:confusion} presents the confusion matrix over the $7{,}920$ ten-second windows under the high-pass setting (Section~\ref{sec:protocol-classifier}). Overall agreement with the reference labelling is $89.51\%$. Per class, \emph{Normal} attains a precision of $98.47\%$ and a recall of $89.17\%$ over $6{,}659$ windows, and \emph{Arrhythmia} a precision of $72.47\%$ and a recall of $92.04\%$ over $1{,}244$ windows.
+
+\begin{table}[!t]
+\caption{Confusion matrix of the rule \eqref{eq:rules} over $7{,}920$ ten-second windows (high-pass preprocessing)}
+\centering
+\renewcommand{\arraystretch}{1.2}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llccc}
+\toprule
+& & \multicolumn{3}{c}{\textbf{Predicted}}\\
+\cmidrule(l){3-5}
+& & Normal & Arrhythmia & Inconcl.\\
+\midrule
+\multirow{3}{*}{\textbf{Reference}}
+& Normal       & 5\,938 & 428   & 293\\
+& Arrhythmia   & 88     & 1\,145 & 11\\
+& Inconclusive & 4      & 7     & 6\\
+\bottomrule
+\end{tabular}
+\label{tab:confusion}
+\end{table}
+
+Only $88$ windows flagged by the reference are reported as normal, whereas $428$ normal windows are flagged spuriously: residual false detections push the rate outside $50$--$100$~BPM more often than missed beats bring it back. For a screening aid this is the preferable operating point, since a spurious warning invites inspection of the trace, but the confidence of $0.84$ in \eqref{eq:rules} is not calibrated and is a fixed annotation, not a probability.
+
+The \emph{Inconclusive} class behaves differently. Only $17$ windows carry fewer than five annotated beats, so class-wise agreement is necessarily low ($6$). The label fires $310$ times, $293$ on windows the reference calls normal, where the detector failed badly enough that fewer than five beats survived: the gate converts a silent failure into an explicit abstention instead of a wrong rate, which is its purpose.
+
+\subsection{Software Quality Metrics}
+\label{sec:results-software}
+
+Table~\ref{tab:quality} summarizes the software quality indicators obtained under the protocol of Section~\ref{sec:protocol-software}. The regression suite comprises 65 tests, all passing, covering $94.47\%$ of statements and $76.51\%$ of branches of the processing core. Coverage is concentrated on the analytical module, on which the reported results depend.
+
+\begin{table}[!t]
+\caption{Software quality metrics of the EduSignal implementation}
+\centering
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{p{4.4cm}r}
+\toprule
+\textbf{Indicator} & \textbf{Value}\\
+\midrule
+Source LOC, frontend / backend & 4\,603 / 189\\
+Automated tests (all passing) & 65\\
+Coverage of the processing core,\newline statements / branches / functions & 94.5 / 76.5 / 95.2\,\%\\
+Direct dependencies, frontend / backend & 54 / 5\\
+\bottomrule
+\end{tabular}
+\label{tab:quality}
+\end{table}
+
+Six tests encode defects found during this validation: the band-pass and notch gain assertions (the band-pass subtracted two cascaded low-pass sections; the notch applied its feed-forward terms to past outputs); a nibble-order test for the WFDB 212 decoder, which assembled each sample from the wrong half-bytes and corrupted every MIT-BIH record loaded through the interface; the dominant-frequency test, exposing the search over DC and mains bins; and the two EMG tests, exposing the miscalibrated threshold floor and the unreachable minimum duration. Real recordings also revealed two integration defects: the EEG laboratory showed a placeholder instead of reading EDF, and the EMG laboratory ran an earlier segmentation routine. ESLint reports $204$ findings, none indicating a functional defect ($197$ are formatting violations).
+
+\subsection{EEG and EMG Chains against Synthetic Ground Truth}
+\label{sec:results-eegemg}
+
+Under the protocol of Section~\ref{sec:protocol-eegemg}, the Welch estimator recovers the dominant frequency with a mean absolute error of $0.035$~Hz and a maximum of $0.12$~Hz, half the bin width $\Delta f/2=0.125$~Hz: the error is explained by the resolution of the transform, not by a defect of the estimator. The band carrying most power is correct in $12$ of $12$ cases, including off-grid frequencies. Total band power of a noiseless sinusoid of amplitude $A=2$ is $2.0000$ against the analytical $2$, an error below $0.01\%$, confirming that the normalisation of \eqref{eq:welch} conserves power.
+
+For the EMG, the four synthetic contractions are detected without false positives or misses, with a mean absolute error of $49.8$~ms for the onset and $49.7$~ms for the offset, $5.4\%$ of the mean burst duration. The errors have opposite signs --- onsets advanced, offsets delayed --- so the contraction is widened by some $99$~ms, that is, one half of the $100$~ms RMS window at each edge: exactly the bias predicted for a centred smoothing window, and therefore attributable to the window and not to the threshold. A causal window of equal length concentrates the whole error on the offset instead of splitting it.
+
+\subsection{EEG Chain on the Complete Dataset}
+\label{sec:results-eegpop}
+
+Table~\ref{tab:eegpop} summarises the $109$ subjects. Alpha power rises on eye closure in $106$ of them (median ratio $3.47$, interquartile range $2.12$--$8.40$), reproducing the Berger effect regardless of filtering. The dominant frequency is far more sensitive to preprocessing: unfiltered, slow drift places $f_{\mathrm{dom}}$ below $1$~Hz in $55$ eyes-closed recordings and in $\alpha$ in only $44$; with the $1$~Hz high-pass these become $16$ and $75$, against $6$ with eyes open. Band power is thus the robust descriptor; a single peak is meaningful only after baseline removal.
+
+\begin{table}[!t]
+\caption{EEG baseline runs of the 109 subjects, channel Oz: eyes closed (C) versus eyes open (O)}
+\centering
+\renewcommand{\arraystretch}{1.12}
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{\textbf{No filter}} & \multicolumn{2}{c}{\textbf{High-pass 1 Hz}}\\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+& C & O & C & O\\
+\midrule
+$f_{\mathrm{dom}}$ in $\alpha$ band & 44 & 5 & 75 & 6\\
+$f_{\mathrm{dom}}<1$~Hz & 55 & 85 & 16 & 24\\
+$\alpha$ is the largest band & 59 & 6 & 73 & 8\\
+Median relative $\alpha$ power & 34.3\% & 12.7\% & 41.4\% & 16.0\%\\
+$P_\alpha(\mathrm{C})>P_\alpha(\mathrm{O})$ & \multicolumn{2}{c}{106} & \multicolumn{2}{c}{106}\\
+\bottomrule
+\end{tabular}
+\label{tab:eegpop}
+\end{table}
+
+\subsection{Qualitative Analysis per Modality}
+\label{sec:results-qual}
+
+Fig.~\ref{fig:examples} shows one segment per modality. For the ECG, the filter cascade restores a stable isoelectric line and the detector recovers all ten annotated beats, yielding $75.0$~BPM and $\overline{RR}=811.4$~ms, consistent with the $75.5$~BPM reference rate of the record. For the EEG, the spectrum shows the $1/f$ decay and a sharp peak at $f_{\mathrm{dom}}=10.00$~Hz, with $60.1\%$ of the $0.5$--$50$~Hz power in $\alpha$ ($\delta$ $20.3\%$, $\theta$ $5.8\%$, $\beta$ $12.9\%$, $\gamma$ $0.9\%$). For the EMG, the platform segments five activation episodes of $207$--$261$~ms; the global descriptors are $\mathrm{RMS}=0.082$~mV, $\mathrm{MAV}=0.054$~mV, $\sigma^{2}=0.0037$~mV$^{2}$ and $E=338.5$~mV$^{2}\cdot$sample. These segments are illustrations, not evidence, and their selection is not neutral: record 100 is among the cleanest of the series, and S001 is one of the $44$ subjects whose unfiltered $f_{\mathrm{dom}}$ falls in $\alpha$.
+
+\begin{figure*}[tb]
+\centering
+\includegraphics[width=\textwidth]{fig_examples.pdf}
+\caption{Illustrative segments processed by the production code. (a) MIT-BIH record 100, $0$--$8$~s, with baseline drift and $60$~Hz interference added synthetically (upper trace, offset by $2.1$~mV) and the output of the band-pass \eqref{eq:bandpass} followed by the notch \eqref{eq:notch} (lower trace); the ten detected R peaks (circles) coincide with the ten reference annotations. (b) Welch PSD of channel Oz, eyes-closed baseline of subject S001 ($61$~s, $29$ segments), with the $\alpha$ band shaded. (c) RMS envelope of the \texttt{emg\_healthy} record ($12.7$~s) with the threshold $\theta_{\mathrm{EMG}}$ of \eqref{eq:emgthreshold} and the five segmented activation episodes shaded.}
+\label{fig:examples}
+\end{figure*}
+
+
+\section{Discussion}
+
+The evaluation supports a bounded claim: the detector is adequate for estimating heart rate and RR intervals in an instructional setting, but clearly below dedicated detectors, which exceed $99\%$ in both $Se$ and $+P$ on the same database \cite{panTompkins1985}. The gap is expected: the detector is meant to be legible to a student who has just met thresholds, refractory periods and robust statistics, onto which every element of \eqref{eq:threshold}--\eqref{eq:refractory} maps.
+
+The comparison across preprocessing settings is what the platform is \emph{designed} to exploit pedagogically, an intention that remains untested. The $1$~Hz high-pass raises $+P$ by six points, from $90.41\%$ to $96.60\%$, and, in the EEG, the eyes-closed recordings with $f_{\mathrm{dom}}$ in $\alpha$ from $44$ to $75$, so the filter selector is a control with a measurable effect, and the failing records fail for reasons that follow from the stated model. Whether exposing this to students improves understanding is a question this work does not answer.
+
+\subsection{Limitations}
+\label{sec:limitations}
+
+Five limitations delimit these results. First, only the ECG chain is validated against human annotations. The EEG chain is validated on the complete dataset against a physiological reference, not against annotated spectral states, and the EMG chain on synthetic signals and a single real recording, since no annotated EMG was available; no EMG sensitivity figure is claimed. Second, the classifier evaluation measures agreement with rate labels derived from reference annotations, not clinical arrhythmia detection, and the rule performs no morphological analysis. Third, the spectral analysis operates on one channel at a time and performs no averaging over the 64 EEG derivations, so the reported values characterise a derivation and not a subject. Fourth, the conversational assistant has not been evaluated in any dimension, and no conclusion of this work depends on it. Fifth, no pedagogical evaluation with student cohorts has been conducted, so no claim is made regarding learning outcomes.
+
+\section{Conclusions}
+
+EduSignal was presented as a virtual laboratory for the digital processing of ECG, EEG, and EMG signals, with its architecture, algorithms and methodology kept separate and its contribution located in integration, explicit specification and quantitative validation rather than in the standard operators it uses. On 44 non-paced MIT-BIH records, QRS detection with baseline removal attains $Se=93.93\%$, $+P=96.60\%$ and $F_1=95.24\%$, the rate is estimated with a median error of $0$~BPM, and the three-label interpretation agrees with the reference in $89.51\%$ of windows. On $109$ EEG subjects the chain reproduces the Berger effect in $106$, and synthetic tests bound the spectral and contraction-timing errors by the resolution and the smoothing window. Validating on complete real datasets, rather than on selected examples, exposed defects that visual inspection had missed.
+
+Future work follows from the stated limitations: an adaptive threshold replacing \eqref{eq:threshold}, grounding the assistant in the computed metrics and evaluating it, annotated EEG and EMG corpora permitting event-level validation, and a pedagogical evaluation with student cohorts.
+
+%\section{Code and data available}
+
+%The source code of EduSignal is organized in a two-service architecture (frontend and backend) packaged with Docker Compose. The databases used for the functional validation are publicly accessible through PhysioNet: MIT-BIH Arrhythmia Database \cite{932724}, EEG Motor Movement/Imagery Dataset \cite{PhysioNet-eegmmidb-1.0.0}, and Examples of Electromyograms \cite{Goldberger2000PhysioNet}.
+
+\bibliographystyle{IEEEtran}
+\bibliography{EduSignal_cite20}
+
+\vspace{12pt}
+
+\end{document}

@@ -8,10 +8,12 @@ import { MetricsPanel } from "@/components/MetricsPanel/MetricsPanel";
 import { ProcessingPanel } from "@/components/ProcessingPanel/ProcessingPanel";
 import { SignalUploader } from "@/components/SignalUploader/SignalUploader";
 import { SignalViewer } from "@/components/SignalViewer/SignalViewer";
+import { ClinicalDisclaimer } from "@/components/ClinicalDisclaimer/ClinicalDisclaimer";
 import { AutomaticInterpretationCard } from "@/components/LaboratorioVirtual/AutomaticInterpretationCard";
 import { AnalysisResultsPanel } from "@/components/LaboratorioVirtual/AnalysisResultsPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  FILTERS_BY_MODALITY,
   applySignalFilter,
   computeMetrics,
   detectRPeaks,
@@ -25,14 +27,14 @@ export function ECGLab() {
   const [filteredSignal, setFilteredSignal] = useState<SignalData | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterType>("none");
   const [peaks, setPeaks] = useState<number[]>([]);
-  const [metrics, setMetrics] = useState<MetricSummary>({ bpm: 0, rrAverageMs: 0, beatCount: 0 });
+  const [metrics, setMetrics] = useState<MetricSummary>({ bpm: 0, rrMeanMs: 0, sdnnMs: 0, rmssdMs: 0, pnn50: 0, beatCount: 0 });
   const [analysisState, setAnalysisState] = useState<{ status: "idle" | "loading" | "ready"; prediction?: string; confidence?: number; explanation?: string; model?: string }>({ status: "idle" });
 
   useEffect(() => {
     if (!signal) {
       setFilteredSignal(null);
       setPeaks([]);
-      setMetrics({ bpm: 0, rrAverageMs: 0, beatCount: 0 });
+      setMetrics({ bpm: 0, rrMeanMs: 0, sdnnMs: 0, rmssdMs: 0, pnn50: 0, beatCount: 0 });
       return;
     }
 
@@ -59,7 +61,10 @@ export function ECGLab() {
         body: JSON.stringify({
           features: {
             bpm: metrics.bpm,
-            hrv: metrics.rrAverageMs,
+            rrMeanMs: metrics.rrMeanMs,
+            sdnnMs: metrics.sdnnMs,
+            rmssdMs: metrics.rmssdMs,
+            pnn50: metrics.pnn50,
             qrsCount: metrics.beatCount,
           },
         }),
@@ -107,7 +112,7 @@ export function ECGLab() {
       return {
         highlight: "Posible taquicardia.",
         description: "La frecuencia cardíaca observada es más alta que la esperada para un ritmo en reposo.",
-        details: ["Frecuencia cardíaca: " + metrics.bpm.toFixed(1) + " bpm", "Picos detectados: " + metrics.beatCount, "Variabilidad cardíaca: " + metrics.rrAverageMs.toFixed(1) + " ms"],
+        details: ["Frecuencia cardíaca: " + metrics.bpm.toFixed(1) + " bpm", "Picos detectados: " + metrics.beatCount, "RR medio: " + metrics.rrMeanMs.toFixed(1) + " ms", "SDNN: " + metrics.sdnnMs.toFixed(1) + " ms · RMSSD: " + metrics.rmssdMs.toFixed(1) + " ms"],
       };
     }
 
@@ -115,25 +120,33 @@ export function ECGLab() {
       return {
         highlight: "Posible bradicardia.",
         description: "La frecuencia cardíaca observada es menor que la esperada para un ritmo en reposo.",
-        details: ["Frecuencia cardíaca: " + metrics.bpm.toFixed(1) + " bpm", "Picos detectados: " + metrics.beatCount, "Variabilidad cardíaca: " + metrics.rrAverageMs.toFixed(1) + " ms"],
+        details: ["Frecuencia cardíaca: " + metrics.bpm.toFixed(1) + " bpm", "Picos detectados: " + metrics.beatCount, "RR medio: " + metrics.rrMeanMs.toFixed(1) + " ms", "SDNN: " + metrics.sdnnMs.toFixed(1) + " ms · RMSSD: " + metrics.rmssdMs.toFixed(1) + " ms"],
       };
     }
 
     return {
       highlight: "Frecuencia cardíaca dentro de rango normal.",
       description: "El ritmo detectado se encuentra dentro del rango habitual y la señal presenta un patrón de latidos estable.",
-      details: ["Frecuencia cardíaca: " + metrics.bpm.toFixed(1) + " bpm", "Variabilidad cardíaca normal.", "QRS detectados: " + metrics.beatCount],
+      details: [
+        "Frecuencia cardíaca: " + metrics.bpm.toFixed(1) + " bpm",
+        "RR medio: " + metrics.rrMeanMs.toFixed(1) + " ms",
+        "SDNN: " + metrics.sdnnMs.toFixed(1) + " ms · RMSSD: " + metrics.rmssdMs.toFixed(1) + " ms · pNN50: " + metrics.pnn50.toFixed(1) + " %",
+        "QRS detectados: " + metrics.beatCount,
+      ],
     };
   }, [metrics, signal]);
 
   const analysisMetrics = useMemo(
     () => ({
       "Frecuencia cardíaca (bpm)": Number.isFinite(metrics.bpm) ? metrics.bpm.toFixed(1) : "0.0",
-      "Variabilidad RR (ms)": Number.isFinite(metrics.rrAverageMs) ? metrics.rrAverageMs.toFixed(1) : "0.0",
+      "RR medio (ms)": Number.isFinite(metrics.rrMeanMs) ? metrics.rrMeanMs.toFixed(1) : "0.0",
+      "SDNN (ms)": Number.isFinite(metrics.sdnnMs) ? metrics.sdnnMs.toFixed(1) : "0.0",
+      "RMSSD (ms)": Number.isFinite(metrics.rmssdMs) ? metrics.rmssdMs.toFixed(1) : "0.0",
+      "pNN50 (%)": Number.isFinite(metrics.pnn50) ? metrics.pnn50.toFixed(1) : "0.0",
       "Latidos detectados": metrics.beatCount,
       "Filtro activo": activeFilter,
     }),
-    [activeFilter, metrics.beatCount, metrics.bpm, metrics.rrAverageMs],
+    [activeFilter, metrics.beatCount, metrics.bpm, metrics.pnn50, metrics.rmssdMs, metrics.rrMeanMs, metrics.sdnnMs],
   );
 
   const analysisResults = useMemo(
@@ -195,6 +208,8 @@ export function ECGLab() {
           </div>
         </section>
 
+        <ClinicalDisclaimer />
+
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">
             <SignalUploader
@@ -210,6 +225,7 @@ export function ECGLab() {
               activeFilter={activeFilter}
               onFilterChange={setActiveFilter}
               peaks={peaks}
+              allowedFilters={FILTERS_BY_MODALITY.ecg}
             />
             <SignalViewer signal={signal} filteredSignal={filteredSignal} peaks={peaks} />
           </div>
@@ -257,7 +273,7 @@ export function ECGLab() {
             <AutomaticInterpretationCard
               icon={Stethoscope}
               title="Interpretación automática"
-              subtitle="Resumen clínico guiado por métricas ECG"
+              subtitle="Resumen orientativo guiado por métricas ECG"
               tone="ecg"
               highlight={interpretation.highlight}
               description={interpretation.description}

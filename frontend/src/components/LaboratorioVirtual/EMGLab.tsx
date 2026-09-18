@@ -8,98 +8,32 @@ import { MetricsPanel } from "@/components/MetricsPanel/MetricsPanel";
 import { ProcessingPanel } from "@/components/ProcessingPanel/ProcessingPanel";
 import { SignalUploader } from "@/components/SignalUploader/SignalUploader";
 import { SignalViewer } from "@/components/SignalViewer/SignalViewer";
+import { ClinicalDisclaimer } from "@/components/ClinicalDisclaimer/ClinicalDisclaimer";
 import { AutomaticInterpretationCard } from "@/components/LaboratorioVirtual/AutomaticInterpretationCard";
 import { AnalysisResultsPanel } from "@/components/LaboratorioVirtual/AnalysisResultsPanel";
 import {
-  applySignalFilter,
+  computeEmgFeatures,
+  computeRmsEnvelope,
+  detectContractions,
+  rectifySignal,
+  type EmgFeatures,
   type FilterType,
   type SignalData,
 } from "@/components/LaboratorioVirtual/signal-utils";
 
-function movingAverage(values: number[], window: number): number[] {
-  const radius = Math.max(1, Math.floor(window / 2));
-  const output = new Array(values.length).fill(0);
-  values.forEach((_, index) => {
-    const start = Math.max(0, index - radius);
-    const end = Math.min(values.length, index + radius + 1);
-    const slice = values.slice(start, end);
-    output[index] = slice.reduce((sum, value) => sum + value, 0) / slice.length;
-  });
-  return output;
-}
-
-function rectifySignal(values: number[]): number[] {
-  return values.map((value) => Math.abs(value));
-}
-
-function computeRmsSignal(values: number[], windowSize: number): number[] {
-  if (!values.length) {
-    return [];
-  }
-
-  const size = Math.max(3, Math.floor(windowSize));
-  return values.map((_, index) => {
-    const start = Math.max(0, index - size + 1);
-    const slice = values.slice(start, index + 1);
-    const meanSquare = slice.reduce((sum, value) => sum + value * value, 0) / slice.length;
-    return Math.sqrt(meanSquare);
-  });
-}
-
-function medianValue(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  if (sorted.length % 2 === 0) {
-    return (sorted[middle - 1] + sorted[middle]) / 2;
-  }
-  return sorted[middle];
-}
-
-function medianAbsoluteDeviation(values: number[]): number {
-  const median = medianValue(values);
-  const deviations = values.map((value) => Math.abs(value - median));
-  return medianValue(deviations);
-}
-
-function computeEmgMetrics(values: number[]) {
-  if (!values.length) {
-    return [
-      { label: "RMS", value: "0.000" },
-      { label: "MAV", value: "0.000" },
-      { label: "Varianza", value: "0.000" },
-      { label: "Energía", value: "0.000" },
-    ];
-  }
-
-  const rectified = rectifySignal(values);
-  const mean = rectified.reduce((sum, value) => sum + value, 0) / rectified.length;
-  const rms = Math.sqrt(rectified.reduce((sum, value) => sum + value * value, 0) / rectified.length);
-  const mav = rectified.reduce((sum, value) => sum + Math.abs(value), 0) / rectified.length;
-  const variance = rectified.reduce((sum, value) => sum + (value - mean) * (value - mean), 0) / rectified.length;
-  const energy = rectified.reduce((sum, value) => sum + value * value, 0);
-
+/**
+ * Presenta los descriptores EMG del nucleo de procesamiento con sus unidades.
+ * Los registros estan expresados en milivoltios, de modo que RMS y MAV quedan
+ * en mV, la varianza en mV^2 y la energia en mV^2*muestra; esta ultima es
+ * proporcional a la duracion y solo comparable entre segmentos iguales.
+ */
+function formatEmgFeatures({ rms, mav, variance, energy }: EmgFeatures) {
   return [
-    { label: "RMS", value: rms.toFixed(3) },
-    { label: "MAV", value: mav.toFixed(3) },
-    { label: "Varianza", value: variance.toFixed(3) },
-    { label: "Energía", value: energy.toFixed(3) },
+    { label: "RMS", value: `${rms.toFixed(3)} mV` },
+    { label: "MAV", value: `${mav.toFixed(3)} mV` },
+    { label: "Varianza", value: `${variance.toFixed(4)} mV²` },
+    { label: "Energía", value: `${energy.toFixed(1)} mV²·muestra` },
   ];
-}
-
-function detectMuscleActivations(values: number[], samplingRate: number): number[] {
-  if (!values.length) return [];
-  const smoothed = movingAverage(values.map((value) => Math.abs(value)), Math.max(5, Math.round(samplingRate / 50)));
-  const median = medianValue(smoothed);
-  const mad = medianAbsoluteDeviation(smoothed);
-  const threshold = median + Math.max(0.1, 2.5 * mad);
-
-  const detections: number[] = [];
-  smoothed.forEach((value, index) => {
-    if (value > threshold && (index === 0 || smoothed[index - 1] <= threshold)) {
-      detections.push(index);
-    }
-  });
-  return detections;
 }
 
 export function EMGLab() {
@@ -115,20 +49,22 @@ export function EMGLab() {
       return;
     }
 
+    // Misma cadena que se describe y valida en el articulo: rectificado,
+    // envolvente RMS centrada y segmentacion con umbral robusto.
     const rectifiedValues = rectifySignal(signal.values);
-    const windowSize = Math.max(5, Math.round(signal.samplingRate / 50));
-    const rmsSmoothedValues = computeRmsSignal(rectifiedValues, windowSize);
+    const envelope = computeRmsEnvelope(rectifiedValues, signal.samplingRate);
     const nextProcessedSignal: SignalData = {
       ...signal,
-      values: rmsSmoothedValues,
-      name: `${signal.name} (rectificada + RMS)`,
+      values: envelope,
+      name: `${signal.name} (rectificada + envolvente RMS)`,
       source: "emg-processed",
       units: signal.units ?? "mV",
     };
 
     setFilteredSignal(nextProcessedSignal);
-    setActivations(detectMuscleActivations(rmsSmoothedValues, signal.samplingRate));
-  }, [activeFilter, signal]);
+    // Los marcadores senalan el inicio de cada contraccion segmentada.
+    setActivations(detectContractions(envelope, signal.samplingRate).map((c) => c.onset));
+  }, [signal]);
 
   const overview = useMemo(() => {
     if (!signal) {
@@ -138,7 +74,8 @@ export function EMGLab() {
     return `Señal cargada: ${signal.name} • ${signal.samples} muestras • ${signal.samplingRate} Hz`;
   }, [signal]);
 
-  const cards = useMemo(() => computeEmgMetrics(filteredSignal?.values ?? signal?.values ?? []), [filteredSignal, signal]);
+  const features = useMemo(() => computeEmgFeatures(signal?.values ?? []), [signal]);
+  const cards = useMemo(() => formatEmgFeatures(features), [features]);
 
   const interpretation = useMemo(() => {
     if (!signal) {
@@ -149,8 +86,8 @@ export function EMGLab() {
       };
     }
 
-    const rmsValue = Number.parseFloat(cards.find((card) => card.label === "RMS")?.value ?? "0");
-    const mavValue = Number.parseFloat(cards.find((card) => card.label === "MAV")?.value ?? "0");
+    const rmsValue = features.rms;
+    const mavValue = features.mav;
 
     if (rmsValue > 0.25 || mavValue > 0.2) {
       return {
@@ -173,7 +110,7 @@ export function EMGLab() {
       description: "La señal presenta una amplitud reducida, lo que sugiere poca activación muscular o un registro de reposo.",
       details: ["RMS: " + rmsValue.toFixed(3), "MAV: " + mavValue.toFixed(3), "La actividad muscular es limitada."],
     };
-  }, [cards, signal]);
+  }, [features, signal]);
 
   const educationalContent = {
     title: "Señal EMG",
@@ -240,6 +177,8 @@ export function EMGLab() {
             </div>
           </div>
         </section>
+
+        <ClinicalDisclaimer />
 
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-6">

@@ -5,6 +5,23 @@ import type { SignalData } from "@/components/LaboratorioVirtual/signal-utils";
 
 const Plot = lazy(() => import("react-plotly.js"));
 
+/**
+ * Traza de Plotly, con los campos que usa este visor. `react-plotly.js` no
+ * publica declaraciones de tipos, de modo que sin esta anotacion TypeScript
+ * infiere el tipo del array a partir de su primer elemento y rechaza las trazas
+ * posteriores, que llevan `dash` o `mode: "markers"`.
+ */
+type PlotTrace = {
+  x: number[];
+  y: number[];
+  type: "scatter";
+  mode: "lines" | "markers";
+  name: string;
+  line?: { color: string; width: number; dash?: string };
+  marker?: { color: string; size: number; symbol: string };
+  hovertemplate?: string;
+};
+
 type SignalViewerProps = {
   signal: SignalData | null;
   filteredSignal?: SignalData | null;
@@ -32,7 +49,7 @@ export function SignalViewer({
     }
 
     const hoverTemplate = `%{y:.3f} ${valueUnit}<extra></extra>`;
-    const baseTrace = {
+    const baseTrace: PlotTrace = {
       x: signal.time,
       y: signal.values,
       type: "scatter" as const,
@@ -42,7 +59,7 @@ export function SignalViewer({
       hovertemplate: hoverTemplate,
     };
 
-    const traces = [baseTrace];
+    const traces: PlotTrace[] = [baseTrace];
 
     if (filteredSignal && filteredSignal.values.length) {
       traces.push({

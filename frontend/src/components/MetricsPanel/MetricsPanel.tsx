@@ -1,4 +1,4 @@
-import { Activity, TimerReset, type LucideIcon } from "lucide-react";
+import { Activity, TimerReset, Waves, type LucideIcon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { MetricSummary } from "@/components/LaboratorioVirtual/signal-utils";
 
@@ -18,13 +18,16 @@ type MetricsPanelProps = {
 export function MetricsPanel({
   metrics,
   title = "Métricas cardíacas",
-  description = "Resumen cuantitativo de la frecuencia cardíaca y la regularidad del ritmo.",
+  description = "Frecuencia cardíaca e índices de variabilidad (HRV) en el dominio del tiempo.",
   cards,
 }: MetricsPanelProps) {
   const resolvedCards = cards ?? [
-    { label: "BPM", value: metrics?.bpm?.toFixed(1) ?? "0.0", icon: Activity },
-    { label: "RR promedio", value: `${metrics?.rrAverageMs?.toFixed(1) ?? "0.0"} ms`, icon: TimerReset },
+    { label: "FC (bpm)", value: metrics?.bpm?.toFixed(1) ?? "0.0", icon: Activity },
+    { label: "RR medio", value: `${metrics?.rrMeanMs?.toFixed(1) ?? "0.0"} ms`, icon: TimerReset },
     { label: "Latidos", value: metrics?.beatCount?.toString() ?? "0", icon: Activity },
+    { label: "SDNN", value: `${metrics?.sdnnMs?.toFixed(1) ?? "0.0"} ms`, icon: Waves },
+    { label: "RMSSD", value: `${metrics?.rmssdMs?.toFixed(1) ?? "0.0"} ms`, icon: Waves },
+    { label: "pNN50", value: `${metrics?.pnn50?.toFixed(1) ?? "0.0"} %`, icon: Waves },
   ];
 
   return (

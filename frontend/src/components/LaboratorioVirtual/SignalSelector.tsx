@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ClinicalDisclaimer } from "@/components/ClinicalDisclaimer/ClinicalDisclaimer";
 
 type SignalOption = {
   id: "ecg" | "emg" | "eeg";
@@ -52,6 +53,8 @@ export function SignalSelector() {
           </p>
         </div>
       </section>
+
+      <ClinicalDisclaimer />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {signalOptions.map((option) => {

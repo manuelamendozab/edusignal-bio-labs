@@ -75,24 +75,39 @@ app.post('/api/ecg/intelligent-analysis', async (req, res) => {
   }
 
   const bpm = Number(features.bpm || 0);
-  const hrv = Number(features.hrv || 0);
   const qrsCount = Number(features.qrsCount || 0);
 
   try {
+    // Umbrales en latidos por minuto segun las guias ACC/AHA/HRS: bradicardia
+    // sinusal por debajo de 50 (guia de bradicardia 2018) y taquicardia sinusal
+    // por encima de 100 (guia de taquicardia supraventricular 2015).
+    const BRADYCARDIA_BPM = 50;
+    const TACHYCARDIA_BPM = 100;
+    // Evidencia minima (numero de complejos QRS) para estimar la frecuencia.
+    const MIN_BEATS_FOR_RATE = 5;
+
     let prediction = 'Normal';
     let confidence = 0.72;
-    let explanation = 'El patrón observado es compatible con un ritmo sin señales claras de arritmia.';
+    let explanation = 'El patron observado es compatible con un ritmo sin senales claras de arritmia.';
     let status = 'normal';
 
-    if (bpm > 100 || bpm < 50) {
+    // Primero la puerta de calidad de senal. Un segmento con muy pocos latidos no
+    // permite estimar la frecuencia: es un criterio de suficiencia de datos, no una
+    // anomalia fisiologica, y por eso no se etiqueta como posible arritmia.
+    if (qrsCount < MIN_BEATS_FOR_RATE) {
+      prediction = 'No concluyente';
+      confidence = 0;
+      explanation =
+        'El segmento contiene menos de ' + MIN_BEATS_FOR_RATE + ' complejos QRS detectados, ' +
+        'insuficientes para estimar la frecuencia cardiaca. Indica un registro demasiado corto o ' +
+        'de calidad limitada, no una anomalia fisiologica.';
+      status = 'inconclusive';
+    } else if (bpm > TACHYCARDIA_BPM || bpm < BRADYCARDIA_BPM) {
       prediction = 'Posible Arritmia';
       confidence = 0.84;
-      explanation = 'La frecuencia cardíaca se encuentra fuera del rango habitual, lo que puede sugerir taquicardia o bradicardia.';
-      status = 'warning';
-    } else if (hrv < 40 || qrsCount < 5) {
-      prediction = 'Posible Arritmia';
-      confidence = 0.79;
-      explanation = 'La variabilidad y la detección de complejos QRS sugieren una señal menos estable o con calidad limitada.';
+      explanation =
+        'La frecuencia cardiaca estimada (' + bpm.toFixed(1) + ' BPM) queda fuera del rango de ' +
+        BRADYCARDIA_BPM + '-' + TACHYCARDIA_BPM + ' BPM, lo que puede sugerir bradicardia o taquicardia.';
       status = 'warning';
     }
 

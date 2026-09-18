@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { Loader2, Send, Zap } from 'lucide-react';
+import {
+  ASSISTANT_DISCLAIMER_TEXT,
+  ClinicalDisclaimer,
+} from '@/components/ClinicalDisclaimer/ClinicalDisclaimer';
 
 interface Message {
   id: string;
@@ -47,7 +51,8 @@ export function ChatAssistant({ embedded = false }: { embedded?: boolean }) {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      const response = await fetch(`${apiUrl}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,6 +99,17 @@ export function ChatAssistant({ embedded = false }: { embedded?: boolean }) {
             </p>
           </div>
         </div>
+        {/*
+          El asistente es un modelo de lenguaje de proposito general adaptado
+          solo por prompt de sistema: sus respuestas no se verifican ni se
+          apoyan en las metricas calculadas, asi que la vista debe advertirlo
+          igual que los laboratorios.
+        */}
+        <ClinicalDisclaimer
+          variant="inline"
+          text={ASSISTANT_DISCLAIMER_TEXT}
+          className="mt-2 border-t border-border/60 pt-2"
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3">

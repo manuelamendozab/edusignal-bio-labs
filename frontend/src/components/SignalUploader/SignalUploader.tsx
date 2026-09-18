@@ -3,7 +3,7 @@ import { useId, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { SignalData } from "@/components/LaboratorioVirtual/signal-utils";
-import { parseCsvSignal, parseWfdbSignal } from "@/components/LaboratorioVirtual/signal-utils";
+import { parseCsvSignal, parseEdfSignal, parseWfdbSignal } from "@/components/LaboratorioVirtual/signal-utils";
 
 type SignalType = "ecg" | "emg" | "eeg";
 type FeedbackTone = "info" | "warning" | "error";
@@ -106,21 +106,20 @@ export function SignalUploader({
     }
 
     if (extension === ".edf") {
-      const fallbackSignal: SignalData = {
-        name: firstFile.name,
-        samples: 256,
-        samplingRate: 256,
-        time: Array.from({ length: 256 }, (_, index) => index / 256),
-        values: Array.from({ length: 256 }, (_, index) => Math.sin(index / 16) * 0.7 + Math.cos(index / 40) * 0.3),
-        source: "edf-preview",
-        units: "µV",
-      };
-
-      onSignalLoaded(fallbackSignal);
-      setFeedback({
-        tone: "info",
-        message: `Archivo .edf detectado: ${firstFile.name}. Se muestra una vista preliminar mientras se completa la integración con MNE.`,
-      });
+      try {
+        const parsed = await parseEdfSignal(firstFile);
+        onSignalLoaded(parsed);
+        const channelInfo = parsed.channels ? ` • ${parsed.channels.length} canales` : "";
+        setFeedback({
+          tone: "info",
+          message: `Archivo EDF ${firstFile.name} cargado: ${parsed.samplingRate} Hz${channelInfo}.`,
+        });
+      } catch (error) {
+        setFeedback({
+          tone: "error",
+          message: error instanceof Error ? error.message : "No se pudo leer el archivo EDF.",
+        });
+      }
       return;
     }
 

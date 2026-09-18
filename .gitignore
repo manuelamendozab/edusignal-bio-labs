@@ -39,3 +39,10 @@ dist-ssr
 # SQLite database
 backend/database.sqlite
 backend/.env
+
+# Cobertura de tests (se regenera con `npx vitest run --coverage`)
+frontend/coverage/
+
+# Bytecode de Python
+__pycache__/
+*.pyc

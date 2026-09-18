@@ -22,6 +22,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ClinicalDisclaimer } from "@/components/ClinicalDisclaimer/ClinicalDisclaimer";
 import heroImage from "@/assets/hero-signals.jpg";
 
 export const Route = createFileRoute("/")({
@@ -392,44 +393,58 @@ function ArchitectureSection() {
   const blocks = [
     {
       name: "Usuario",
-      description: "Estudiante o docente interactúa con la plataforma para cargar señales y explorar resultados.",
-      technology: "Experiencia web guiada",
+      description:
+        "Estudiante o docente carga un registro y explora la señal desde el navegador. El archivo nunca sale de su equipo.",
+      technology: "Navegador web",
       icon: UserRound,
     },
     {
-      name: "Frontend React",
-      description: "La interfaz reúne laboratorios, visualizaciones interactivas y componentes pedagógicos para el usuario.",
-      technology: "React + TypeScript",
+      name: "Interfaz React",
+      description:
+        "Laboratorios ECG, EMG y EEG, controles de filtrado y paneles pedagógicos. Enrutamiento por archivos y renderizado en servidor.",
+      technology: "React 19 · TypeScript · TanStack Start · Tailwind CSS",
       icon: Activity,
     },
     {
-      name: "Backend FastAPI",
-      description: "Orquesta la lógica de negocio, expone servicios y prepara los datos para el análisis.",
-      technology: "FastAPI",
-      icon: Cpu,
-    },
-    {
-      name: "Procesamiento de Bioseñales",
-      description: "Aplica filtrado, extracción de características y procesamiento digital de señales fisiológicas.",
-      technology: "NumPy, SciPy, NeuroKit2, MNE",
+      name: "Motor de procesamiento",
+      description:
+        "Lectura de CSV y de registros WFDB, filtros IIR, detección de picos R, transformada de Fourier y métricas de HRV, implementados desde cero en TypeScript.",
+      technology: "TypeScript · sin dependencias de cálculo",
       icon: Filter,
     },
     {
-      name: "Módulo Inteligente",
-      description: "Clasifica patrones, estima estados y genera explicaciones automáticas con aprendizaje automático.",
-      technology: "Scikit-Learn y TensorFlow",
-      icon: Bot,
+      name: "Ejecución en el navegador",
+      description:
+        "Todo el cálculo ocurre del lado del cliente: ningún dato fisiológico se transmite ni se almacena en un servidor.",
+      technology: "Web APIs · File API",
+      icon: ShieldCheck,
     },
     {
-      name: "Visualización de Resultados",
-      description: "Transforma los resultados en gráficos interactivos y métricas comprensibles para el usuario.",
-      technology: "Plotly",
+      name: "Visualización interactiva",
+      description:
+        "Trazado de la señal cruda frente a la filtrada, marcado de eventos y espectro de potencia, con zoom y paneo.",
+      technology: "Plotly.js",
       icon: LineChart,
     },
     {
-      name: "Retroalimentación Educativa",
-      description: "Integra explicaciones, guías y contexto pedagógico para reforzar el aprendizaje.",
-      technology: "Retroalimentación guiada y asistente",
+      name: "Servicios de apoyo",
+      description:
+        "API REST para usuarios y prácticas, más un endpoint de interpretación asistida basado en reglas sobre las métricas extraídas.",
+      technology: "Node.js · Express · SQLite",
+      icon: Cpu,
+    },
+    {
+      name: "Asistente educativo",
+      description:
+        "Tutor conversacional que responde dudas conceptuales de procesamiento digital de señales. Solo recibe la pregunta escrita, no la señal.",
+      technology: "API de Claude (Anthropic)",
+      icon: Bot,
+    },
+    {
+      name: "Datos de referencia",
+      description:
+        "Los registros de ejemplo provienen de PhysioNet. Un script auxiliar convierte registros WFDB a CSV aplicando la ganancia declarada en la cabecera.",
+      technology: "PhysioNet · WFDB · Python",
       icon: GraduationCap,
     },
   ];
@@ -442,7 +457,7 @@ function ArchitectureSection() {
         <SectionHeader
           eyebrow="Arquitectura de EduSignal"
           title="Flujo completo de la plataforma"
-          desc="Una arquitectura modular que conecta la experiencia de usuario, el procesamiento de bioseñales y la inteligencia artificial en un entorno educativo coherente."
+          desc="El procesamiento de bioseñales corre íntegramente en el navegador; el servidor solo da soporte a la persistencia y al asistente conversacional."
         />
 
         <div className="mt-14 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
@@ -500,7 +515,8 @@ function ArchitectureSection() {
             <div className="mt-6 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/8 to-transparent p-4">
               <p className="text-sm font-semibold text-foreground">Flujo general</p>
               <p className="mt-2 text-sm text-muted-foreground">
-                Usuario → Frontend → Backend → Procesamiento → Inteligencia Artificial → Visualización → Retroalimentación.
+                Carga del registro → decodificación (CSV / WFDB) → filtrado → detección de eventos →
+                métricas y espectro → visualización → interpretación guiada.
               </p>
             </div>
           </div>
@@ -597,6 +613,7 @@ function Footer() {
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
             Laboratorio virtual educativo para el aprendizaje de procesamiento digital de bioseñales.
           </p>
+          <ClinicalDisclaimer variant="inline" className="mt-4 max-w-sm" />
         </div>
         <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground md:items-end">
           <div className="flex gap-6">
