@@ -24,15 +24,23 @@ import {
 const Plot = lazy(() => import("react-plotly.js"));
 
 /**
- * Potencia de banda absoluta, en las unidades del registro al cuadrado. El
- * rango util abarca varios ordenes de magnitud segun la ganancia del equipo,
- * asi que se recurre a notacion cientifica fuera de un intervalo legible.
+ * Potencia de banda absoluta, en las unidades del registro al cuadrado. En un
+ * EEG en µV las bandas caen tipicamente entre decenas y algunos miles, y el
+ * caso mas interesante --- el pico alpha con los ojos cerrados --- vive
+ * justamente en los miles, de modo que la notacion cientifica se reserva para
+ * los extremos y los millares se separan con un espacio fino, que se lee igual
+ * en cualquier idioma. Sin esto el valor mas relevante se mostraba como
+ * "2.88e+3", el formato menos legible para el unico numero que el estudiante
+ * debe comparar entre ojos abiertos y cerrados.
  */
 function formatBandPower(power: number, units = "µV"): string {
   if (!(power > 0)) return `0 ${units}²`;
-  const formatted =
-    power >= 1000 || power < 0.01 ? power.toExponential(2) : power.toFixed(power >= 10 ? 1 : 3);
-  return `${formatted} ${units}²`;
+  if (power >= 1e6 || power < 0.01) return `${power.toExponential(2)} ${units}²`;
+
+  const decimals = power >= 1000 ? 0 : power >= 10 ? 1 : 3;
+  const [whole, fraction] = power.toFixed(decimals).split(".");
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return `${fraction ? `${grouped}.${fraction}` : grouped} ${units}²`;
 }
 
 export function EEGLab() {

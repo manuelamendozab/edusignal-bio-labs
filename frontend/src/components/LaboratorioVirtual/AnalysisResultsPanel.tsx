@@ -114,6 +114,32 @@ function buildExportHtml(entries: AnalysisResult[]) {
   return `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>Resultados de análisis</title><style>body{font-family:Inter,Arial,sans-serif;padding:24px;color:#111827;}h1{margin-bottom:8px;}h2{margin-bottom:6px;}ul{padding-left:20px;}@media print{body{padding:0;}}</style></head><body><h1>Resultados del análisis</h1><p>Reporte exportado desde EduSignal.</p>${reportEntries}</body></html>`;
 }
 
+/**
+ * Guarda el historial tolerando que `localStorage` se quede sin cuota o este
+ * deshabilitado. Antes la escritura iba sin proteger, de modo que un
+ * QuotaExceededError salia del efecto y el limite de error de React tumbaba el
+ * laboratorio entero: el estudiante veia "This page didn't load" al cambiar de
+ * canal. El historial es una comodidad, nunca un motivo para perder la sesion,
+ * asi que ante un fallo se reintenta con menos entradas y, si aun asi no cabe,
+ * se abandona en silencio.
+ */
+function persistHistory(storageKey: string, entries: AnalysisResult[]): void {
+  for (const attempt of [entries, entries.slice(0, 4), entries.slice(0, 1)]) {
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(attempt));
+      return;
+    } catch {
+      // Se prueba con un historial mas corto.
+    }
+  }
+
+  try {
+    window.localStorage.removeItem(storageKey);
+  } catch {
+    // localStorage no disponible (modo privado, cookies bloqueadas).
+  }
+}
+
 export function AnalysisResultsPanel({
   labType,
   signal,
@@ -172,8 +198,16 @@ export function AnalysisResultsPanel({
       durationSeconds: signal.time.length > 1 ? signal.time[signal.time.length - 1] - signal.time[0] : signal.samples / Math.max(signal.samplingRate, 1),
       metrics: Object.fromEntries(Object.entries(metrics).map(([label, value]) => [label, value])),
       results,
+      // Solo los campos que el historial dibuja. Un `...signal` arrastraba
+      // `channels`, que en un EDF de 64 derivaciones son varios millones de
+      // muestras (unos 10 MB por entrada) que nadie lee: el historial unicamente
+      // pinta `values` y `time`, ya recortados a 400 puntos.
       signal: {
-        ...signal,
+        name: signal.name,
+        samples: signal.samples,
+        samplingRate: signal.samplingRate,
+        source: signal.source,
+        units: signal.units,
         values: signal.values.slice(0, Math.min(signal.values.length, 400)),
         time: signal.time.slice(0, Math.min(signal.time.length, 400)),
       },
@@ -184,7 +218,7 @@ export function AnalysisResultsPanel({
     lastSavedSignature.current = currentSignature;
 
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(storageKey, JSON.stringify(nextEntries));
+      persistHistory(storageKey, nextEntries);
     }
   }, [currentSignature, history, labType, metrics, results, signal, storageKey]);
 
